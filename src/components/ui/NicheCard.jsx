@@ -1,0 +1,27 @@
+// NicheCard.jsx - shadcn/ui styled card for niche selection
+export default function NicheCard({
+  icon,
+  title,
+  description,
+  selected,
+  onClick,
+}) {
+  return (
+    <button
+      className={`group relative flex flex-col items-center justify-center border rounded-xl p-6 shadow-sm transition-all duration-200 bg-white hover:shadow-lg focus:ring-2 focus:ring-primary/50 outline-none w-40 h-40 m-2 ${
+        selected ? "border-primary ring-2 ring-primary/40" : "border-gray-200"
+      }`}
+      onClick={onClick}
+      aria-pressed={selected}
+    >
+      <span className="text-4xl mb-2">{icon}</span>
+      <span className="font-semibold text-lg mb-1">{title}</span>
+      <span className="text-xs text-gray-500 text-center">{description}</span>
+      {selected && (
+        <span className="absolute top-2 right-2 bg-primary text-white rounded-full px-2 py-0.5 text-xs">
+          Selected
+        </span>
+      )}
+    </button>
+  );
+}
