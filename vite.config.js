@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     server: {
-      port: 3000,
+      
       headers: {
         // Allow cross-domain popups to communicate via postMessage
         "Cross-Origin-Opener-Policy": "unsafe-none",

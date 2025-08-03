@@ -5,7 +5,7 @@ export const useAuthStore = create((set) => ({
   user: null,
   access: localStorage.getItem("access_token"),
   refresh: localStorage.getItem("refresh_token"),
-  isAuthenticated: !!localStorage.getItem("access_token"),
+  isAuthenticated: true, // Temporarily set to true to disable authentication
   loading: false,
   error: null,
 

@@ -3,6 +3,9 @@ import axios from "axios";
 const backendDomain =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+// Image Caption API Domain
+const imageCaptionDomain = "http://127.0.0.1:5000";
+
 // Validate Google Client ID
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 if (!GOOGLE_CLIENT_ID) {
@@ -21,19 +24,28 @@ const axiosInstance = axios.create({
   },
 });
 
-// Add token to requests automatically
+// Create axios instance for image caption API
+const imageCaptionInstance = axios.create({
+  baseURL: imageCaptionDomain,
+  timeout: 60000, // 60 second timeout for image processing
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+});
+
+// Add token to requests automatically (commented out for now as authentication is disabled)
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // const token = localStorage.getItem("access_token");
+    // if (token) {
+    //   config.headers.Authorization = `Bearer ${token}`;
+    // }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle token refresh
+// Add response interceptor to handle token refresh (disabled for now)
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -49,38 +61,38 @@ axiosInstance.interceptors.response.use(
       });
     }
 
-    // Handle 401 unauthorized errors with token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    // Handle 401 unauthorized errors with token refresh (disabled)
+    // if (error.response?.status === 401 && !originalRequest._retry) {
+    //   originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem("refresh_token");
-      if (refreshToken) {
-        try {
-          const response = await axios.post(
-            `${backendDomain}/api/users/token/refresh/`,
-            {
-              refresh: refreshToken,
-            }
-          );
+    //   const refreshToken = localStorage.getItem("refresh_token");
+    //   if (refreshToken) {
+    //     try {
+    //       const response = await axios.post(
+    //         `${backendDomain}/api/users/token/refresh/`,
+    //         {
+    //           refresh: refreshToken,
+    //         }
+    //       );
 
-          const newToken = response.data.access;
-          localStorage.setItem("access_token", newToken);
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+    //       const newToken = response.data.access;
+    //       localStorage.setItem("access_token", newToken);
+    //       originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
-          return axiosInstance(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, clear tokens and redirect to login
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
+    //       return axiosInstance(originalRequest);
+    //     } catch (refreshError) {
+    //       // Refresh failed, clear tokens and redirect to login
+    //       localStorage.removeItem("access_token");
+    //       localStorage.removeItem("refresh_token");
 
-          // Only redirect if we're not already on login page
-          if (!window.location.pathname.includes("/login")) {
-            window.location.href = "/login";
-          }
-          return Promise.reject(refreshError);
-        }
-      }
-    }
+    //       // Only redirect if we're not already on login page
+    //       if (!window.location.pathname.includes("/login")) {
+    //         window.location.href = "/login";
+    //       }
+    //       return Promise.reject(refreshError);
+    //     }
+    //   }
+    // }
 
     // Handle specific error statuses
     if (error.response?.status === 404) {
@@ -205,6 +217,36 @@ const SummaryApi = {
     axiosInstance.get("/api/trends/hashtags/", { params }),
   getCaptions: (params) =>
     axiosInstance.get("/api/trends/captions/", { params }),
+
+  // Image Caption Generation
+  generateCaption: async (imageFile) => {
+    try {
+      const formData = new FormData();
+      formData.append("image", imageFile);
+
+      const response = await imageCaptionInstance.post("/generate", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      return response;
+    } catch (error) {
+      console.error("Image caption generation error:", error);
+      throw error;
+    }
+  },
+
+  // Check if image caption service is available
+  checkImageCaptionService: async () => {
+    try {
+      const response = await imageCaptionInstance.get("/");
+      return response;
+    } catch (error) {
+      console.error("Image caption service check failed:", error);
+      return { data: { status: "Image caption service unavailable" } };
+    }
+  },
 
   // Chat Sessions
   getChatSessions: () => axiosInstance.get("/api/trends/chat/sessions/"),
