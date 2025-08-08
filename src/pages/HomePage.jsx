@@ -41,7 +41,7 @@ export default function HomePage() {
                 <span className="text-3xl sm:text-4xl">🎯</span>
               </div>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent mb-4">
+            <h1 className="text-2xl sm:text-4xl font-bold text-foreground mb-4">
               Choose Your Niche
             </h1>
             <p className="text-sm sm:text-lg text-muted-foreground leading-relaxed">
@@ -63,7 +63,7 @@ export default function HomePage() {
         {!isMobile && selectedNiche && (
           <div className="mb-8">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent">
+              <h2 className="text-2xl font-bold mb-2 text-foreground">
                 Trending in {selectedNiche}
               </h2>
               <p className="text-muted-foreground">
@@ -83,7 +83,7 @@ export default function HomePage() {
                   <span className="text-3xl">🚀</span>
                 </div>
               </div>
-              <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent">
+              <h3 className="text-xl font-bold mb-4 text-foreground">
                 Ready to Create?
               </h3>
               <p className="text-muted-foreground dark:text-muted-foreground mb-6 text-sm leading-relaxed">
