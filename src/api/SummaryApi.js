@@ -454,6 +454,19 @@ const SummaryApi = {
       return null;
     }
   },
+
+  // Aliases for backward compatibility
+  scrapeYouTube: async (query = "trending") => {
+    return await SummaryApi.getYoutubeTrending(query);
+  },
+
+  scrapeReddit: async (query = "popular") => {
+    return await SummaryApi.getRedditTrending(query);
+  },
+
+  scrapePinterest: async (query = "viral") => {
+    return await SummaryApi.getPinterestTrending(query);
+  },
 };
 
 export default SummaryApi;
