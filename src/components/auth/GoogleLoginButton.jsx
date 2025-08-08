@@ -1,17 +1,17 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import SummaryApi from "../../api/SummaryApi";
 
 export default function GoogleLoginButton() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser, setTokens } = useAuthStore();
+  const { googleLogin, handleOAuthCallback, loading, error } = useAuthStore();
 
-  // Handle Google OAuth redirect
+  // Handle Google OAuth redirect/callback
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const code = urlParams.get("code");
+    const state = urlParams.get("state");
     const error = urlParams.get("error");
 
     if (error) {
@@ -23,24 +23,22 @@ export default function GoogleLoginButton() {
     }
 
     if (code) {
-      handleGoogleCallback(code);
+      handleGoogleCallback(code, state);
     }
-  }, [location.search]);
+  }, [location.search, navigate, handleOAuthCallback]);
 
   // Handle the OAuth callback
-  const handleGoogleCallback = async (code) => {
+  const handleGoogleCallback = async (code, state) => {
     try {
-      // Exchange code for tokens using Django backend
-      const response = await SummaryApi.handleGoogleCallback(code);
-      const { access, refresh, user } = response.data;
+      const success = await handleOAuthCallback(code, state);
+      if (success) {
+        // Clear the code from URL and redirect
+        window.history.replaceState({}, document.title, location.pathname);
 
-      // Save tokens and user data
-      setTokens(access, refresh);
-      setUser(user);
-
-      // Clear the code from URL and redirect
-      window.history.replaceState({}, document.title, location.pathname);
-      navigate("/generate");
+        // Redirect to the intended page or generate page
+        const from = location.state?.from?.pathname || "/generate";
+        navigate(from);
+      }
     } catch (error) {
       console.error("Google login failed:", error);
       navigate("/login", {
@@ -51,16 +49,21 @@ export default function GoogleLoginButton() {
     }
   };
 
-  // Initiate Google login
-  const handleGoogleLogin = (e) => {
+  // Handle Google login button click
+  const handleGoogleLogin = async (e) => {
     e.preventDefault();
-    SummaryApi.initiateGoogleLogin();
+    try {
+      await googleLogin();
+    } catch (error) {
+      console.error("Failed to initiate Google login:", error);
+    }
   };
 
   return (
     <button
       onClick={handleGoogleLogin}
-      className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-md border hover:bg-gray-50 transition"
+      disabled={loading}
+      className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-md border hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <svg
         className="w-5 h-5"
@@ -84,7 +87,7 @@ export default function GoogleLoginButton() {
           fill="#EA4335"
         />
       </svg>
-      Continue with Google
+      {loading ? "Signing in..." : "Continue with Google"}
     </button>
   );
 }

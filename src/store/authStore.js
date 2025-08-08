@@ -1,31 +1,59 @@
 import { create } from "zustand";
 import SummaryApi from "../api/SummaryApi";
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   user: null,
   access: localStorage.getItem("access_token"),
   refresh: localStorage.getItem("refresh_token"),
-  isAuthenticated: true, // Temporarily set to true to disable authentication
+  isAuthenticated: !!localStorage.getItem("access_token"), // Check if token exists
   loading: false,
   error: null,
+
+  // Initialize auth state
+  initializeAuth: async () => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      try {
+        // Verify token and get user profile
+        await get().fetchProfile();
+        set({ isAuthenticated: true });
+      } catch (error) {
+        // Token invalid, clear auth
+        get().clearAuth();
+      }
+    }
+  },
+
+  // Clear authentication
+  clearAuth: () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    set({
+      user: null,
+      access: null,
+      refresh: null,
+      isAuthenticated: false,
+      error: null,
+    });
+  },
 
   login: async (form) => {
     set({ loading: true, error: null });
     try {
       const res = await SummaryApi.login(form);
-      localStorage.setItem("access_token", res.data.access);
-      localStorage.setItem("refresh_token", res.data.refresh);
+      localStorage.setItem("access_token", res.data.access_token);
+      localStorage.setItem("refresh_token", res.data.refresh_token);
       set({
-        access: res.data.access,
-        refresh: res.data.refresh,
+        access: res.data.access_token,
+        refresh: res.data.refresh_token,
         isAuthenticated: true,
       });
-      await useAuthStore.getState().fetchProfile();
+      await get().fetchProfile();
       return true;
     } catch (err) {
       const errorMessage =
         err?.response?.data?.detail ||
-        err?.response?.data?.non_field_errors?.[0] ||
+        err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
         "Login failed. Please try again.";
@@ -36,30 +64,46 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  // Add Google login method
-  googleLogin: async (access_token) => {
+  // Google login method
+  googleLogin: async () => {
     set({ loading: true, error: null });
     try {
-      const res = await SummaryApi.googleLogin({
-        provider: "google",
-        access_token,
-      });
-      localStorage.setItem("access_token", res.data.access);
-      localStorage.setItem("refresh_token", res.data.refresh);
-      set({
-        access: res.data.access,
-        refresh: res.data.refresh,
-        isAuthenticated: true,
-      });
-      await useAuthStore.getState().fetchProfile();
+      // Use backend OAuth route
+      SummaryApi.initiateGoogleLogin();
       return true;
     } catch (err) {
       const errorMessage =
         err?.response?.data?.detail ||
-        err?.response?.data?.non_field_errors?.[0] ||
+        err?.response?.data?.message ||
         err?.response?.data?.error ||
         err?.message ||
         "Google login failed. Please try again.";
+      set({ error: errorMessage, loading: false });
+      return false;
+    }
+  },
+
+  // Handle OAuth callback
+  handleOAuthCallback: async (code, state) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await SummaryApi.handleGoogleCallback(code, state);
+      localStorage.setItem("access_token", res.data.access_token);
+      localStorage.setItem("refresh_token", res.data.refresh_token);
+      set({
+        access: res.data.access_token,
+        refresh: res.data.refresh_token,
+        isAuthenticated: true,
+      });
+      await get().fetchProfile();
+      return true;
+    } catch (err) {
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "OAuth callback failed. Please try again.";
       set({ error: errorMessage });
       return false;
     } finally {
@@ -73,32 +117,44 @@ export const useAuthStore = create((set) => ({
         refresh: localStorage.getItem("refresh_token"),
       });
     } catch {}
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    set({ user: null, access: null, refresh: null, isAuthenticated: false });
+    get().clearAuth();
   },
 
   fetchProfile: async () => {
     try {
       const res = await SummaryApi.profile();
       set({ user: res.data });
-    } catch {
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+      // If profile fetch fails due to invalid token, clear auth
+      if (error.response?.status === 401) {
+        get().clearAuth();
+      }
       set({ user: null });
     }
   },
 
   refreshToken: async () => {
     try {
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (!refreshToken) {
+        get().clearAuth();
+        return null;
+      }
+
       const res = await SummaryApi.refresh({
-        refresh: localStorage.getItem("refresh_token"),
+        refresh: refreshToken,
       });
-      localStorage.setItem("access_token", res.data.access);
-      set({ access: res.data.access, isAuthenticated: true });
+
+      localStorage.setItem("access_token", res.data.access_token);
+      set({ access: res.data.access_token, isAuthenticated: true });
+
       // Fetch updated user profile after refresh
-      await useAuthStore.getState().fetchProfile();
-      return res.data.access;
-    } catch {
-      set({ isAuthenticated: false });
+      await get().fetchProfile();
+      return res.data.access_token;
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+      get().clearAuth();
       return null;
     }
   },
