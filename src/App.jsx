@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import AppRouter from "./router";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 import { useAuthStore } from "./store/authStore";
 
@@ -26,10 +27,11 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <GoogleOAuthProvider clientId={clientId}>
-       
-        <AppRouter />
-      </GoogleOAuthProvider>
+      <ThemeProvider>
+        <GoogleOAuthProvider clientId={clientId}>
+          <AppRouter />
+        </GoogleOAuthProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

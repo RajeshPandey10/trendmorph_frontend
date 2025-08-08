@@ -2,6 +2,18 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { InlineLoader } from "../components/ui/Loading";
 import SummaryApi from "../api/SummaryApi";
+import Logo from "../components/ui/Logo";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { Alert, AlertDescription } from "../components/ui/Alert";
+import { AlertCircle, CheckCircle } from "lucide-react";
 
 export default function RegisterPage() {
   const [form, setForm] = useState({
@@ -37,78 +49,119 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-wheat">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm"
-      >
-        <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-        {error && (
-          <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-600 text-sm">
-            {error}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <Logo size="lg" animated={true} />
           </div>
-        )}
-        {success && (
-          <div className="mb-4 p-3 rounded bg-green-50 border border-green-200 text-green-600 text-sm">
-            Registration successful! Redirecting to login...
+          <div>
+            <CardTitle className="text-2xl">Join TrendMorphAI</CardTitle>
+            <CardDescription>
+              Create your account to start generating amazing content
+            </CardDescription>
           </div>
-        )}
-        <input
-          className="w-full mb-4 px-4 py-2 border rounded-lg bg-wheat text-black"
-          name="username"
-          placeholder="Username"
-          value={form.username}
-          onChange={handleChange}
-          required
-        />
-        <input
-          className="w-full mb-4 px-4 py-2 border rounded-lg bg-wheat text-black"
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={form.email}
-          onChange={handleChange}
-          required
-        />
-        <input
-          className="w-full mb-4 px-4 py-2 border rounded-lg bg-wheat text-black"
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={form.password}
-          onChange={handleChange}
-          required
-        />
-        <input
-          className="w-full mb-4 px-4 py-2 border rounded-lg bg-wheat text-black"
-          name="password2"
-          type="password"
-          placeholder="Confirm Password"
-          value={form.password2}
-          onChange={handleChange}
-          required
-        />
-        <button
-          type="submit"
-          className="w-full bg-orange-500 text-white font-semibold py-2 rounded-lg shadow hover:bg-orange-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
-          disabled={loading}
-        >
-          {loading && <InlineLoader size="small" color="white" />}
-          {loading ? "Registering..." : "Register"}
-        </button>
+        </CardHeader>
 
-        {/* Add login link */}
-        <div className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
-            className="text-orange-500 hover:text-orange-600 font-medium"
-          >
-            Sign in here
-          </button>
-        </div>
-      </form>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {success && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                Registration successful! Redirecting to login...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="username" className="text-sm font-medium">
+                Username
+              </label>
+              <Input
+                id="username"
+                name="username"
+                placeholder="Choose a username"
+                value={form.username}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">
+                Email
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Enter your email"
+                value={form.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Create a password"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password2" className="text-sm font-medium">
+                Confirm Password
+              </label>
+              <Input
+                id="password2"
+                name="password2"
+                type="password"
+                placeholder="Confirm your password"
+                value={form.password2}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading || success}
+            >
+              {loading && <InlineLoader size="small" color="white" />}
+              {loading ? "Registering..." : success ? "Success!" : "Register"}
+            </Button>
+          </form>
+
+          <div className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto font-normal"
+              onClick={() => navigate("/login")}
+            >
+              Sign in here
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
