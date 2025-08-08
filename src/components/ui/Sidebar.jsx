@@ -1,16 +1,30 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
+import { useTheme } from "../../contexts/ThemeContext";
+import Logo from "./Logo";
+import ThemeToggle from "./ThemeToggle";
+import { Button } from "./Button";
+import {
+  Home,
+  Sparkles,
+  FileText,
+  Video,
+  LogOut,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
 
 const navItems = [
-  { label: "Home", to: "/", icon: "🏠" },
-  { label: "Generate", to: "/generate", icon: "✨", protected: true },
-  { label: "History", to: "/history", icon: "📋", protected: true },
-  { label: "Videos", to: "/videos", icon: "🎥" },
+  { label: "Home", to: "/", icon: Home, protected: false },
+  { label: "Generate", to: "/generate", icon: Sparkles, protected: true },
+  { label: "History", to: "/history", icon: FileText, protected: true },
+  { label: "Videos", to: "/videos", icon: Video, protected: false },
 ];
 
 export default function Sidebar({ open, onClose }) {
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuthStore();
+  const { isDark } = useTheme();
 
   const handleLogout = async () => {
     await logout();
@@ -19,78 +33,103 @@ export default function Sidebar({ open, onClose }) {
 
   return (
     <aside
-      className={`fixed z-40 top-0 left-0 h-screen w-64 bg-black text-white shadow-2xl border-r-0 transition-transform duration-200 transform flex flex-col ${
+      className={`fixed z-40 top-0 left-0 h-screen w-64 bg-card border-r border-border shadow-xl transition-transform duration-300 transform flex flex-col ${
         open ? "translate-x-0" : "-translate-x-full"
-      } md:translate-x-0 md:sticky md:top-0`}
+      } md:translate-x-0 md:sticky md:top-0 md:bg-card/95 md:backdrop-blur md:supports-[backdrop-filter]:bg-card/60`}
     >
-      <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-black flex-shrink-0">
-        <span className="text-2xl font-extrabold tracking-tight drop-shadow">
-          TrendMorphAI
-        </span>
-        <button
-          className="md:hidden text-white text-xl"
-          onClick={onClose}
-          aria-label="Close sidebar"
-        >
-          ✖️
-        </button>
+      <div className="flex items-center justify-between px-6 py-5 border-b border-border bg-card flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <Logo size="md" animated={true} />
+          <span className="text-xl font-extrabold tracking-tight text-foreground">
+            TrendMorphAI
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle className="md:flex hidden" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden text-foreground"
+            onClick={onClose}
+            aria-label="Close sidebar"
+          >
+            ✖️
+          </Button>
+        </div>
       </div>
 
-      <nav className="flex flex-col gap-2 mt-8 px-4 flex-1 overflow-y-auto">
+      <nav className="flex flex-col gap-2 mt-6 px-4 flex-1 overflow-y-auto">
         {navItems.map((item) => {
           // Hide protected items if not authenticated
           if (item.protected && !isAuthenticated) return null;
+
+          const IconComponent = item.icon;
 
           return (
             <Link
               key={item.to}
               to={item.to}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-lg transition-all duration-150 ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
                 location.pathname === item.to
-                  ? "bg-orange-500 text-white shadow-inner"
-                  : "hover:bg-orange-400 hover:text-white/90"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
               onClick={onClose}
             >
-              <span className="text-2xl">{item.icon}</span>
+              <IconComponent className="w-5 h-5 group-hover:scale-110 transition-transform" />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto px-6 py-6 border-t border-white/10 flex-shrink-0">
+      <div className="mt-auto px-4 py-6 border-t border-border flex-shrink-0 space-y-4">
+        <div className="md:hidden flex justify-center">
+          <ThemeToggle />
+        </div>
+
         {isAuthenticated ? (
           <div className="space-y-3">
-            <div className="text-sm text-white/70">
-              Welcome, {user?.username || "User"}!
+            <div className="text-sm text-muted-foreground px-2">
+              Welcome,{" "}
+              <span className="font-medium text-foreground">
+                {user?.username || "User"}
+              </span>
+              !
             </div>
-            <button
+            <Button
               onClick={handleLogout}
-              className="w-full bg-red-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-600 transition"
+              variant="destructive"
+              className="w-full justify-start gap-2"
+              size="sm"
             >
+              <LogOut className="w-4 h-4" />
               Logout
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">
-            <Link
-              to="/login"
-              className="block w-full bg-orange-500 text-white text-center px-3 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition"
-              onClick={onClose}
+            <Button asChild className="w-full justify-start gap-2" size="sm">
+              <Link to="/login" onClick={onClose}>
+                <LogIn className="w-4 h-4" />
+                Login
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="w-full justify-start gap-2"
+              size="sm"
             >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="block w-full border border-white/20 text-white text-center px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 transition"
-              onClick={onClose}
-            >
-              Register
-            </Link>
+              <Link to="/register" onClick={onClose}>
+                <UserPlus className="w-4 h-4" />
+                Register
+              </Link>
+            </Button>
           </div>
         )}
-        <div className="text-xs text-white/50 mt-4 hidden md:block">
+
+        <div className="text-xs text-muted-foreground text-center hidden md:block pt-2">
           &copy; {new Date().getFullYear()} TrendMorphAI
         </div>
       </div>

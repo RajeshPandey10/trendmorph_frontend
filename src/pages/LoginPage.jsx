@@ -3,6 +3,18 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { InlineLoader } from "../components/ui/Loading";
 import GoogleLoginButton from "../components/auth/GoogleLoginButton";
+import Logo from "../components/ui/Logo";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/Card";
+import { Alert, AlertDescription } from "../components/ui/Alert";
+import { AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -24,71 +36,89 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-wheat px-4">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-black">
-          Welcome Back
-        </h2>
-
-        {error && (
-          <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-600 text-sm">
-            {error}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center">
+            <Logo size="lg" animated={true} />
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="w-full px-4 py-2 border rounded-lg bg-wheat text-black"
-            name="username"
-            placeholder="Username"
-            value={form.username}
-            onChange={handleChange}
-            required
-          />
-          <input
-            className="w-full px-4 py-2 border rounded-lg bg-wheat text-black"
-            name="password"
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
-          <button
-            type="submit"
-            className="w-full bg-orange-500 text-white font-semibold py-2 rounded-lg shadow hover:bg-orange-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
-            disabled={loading}
-          >
-            {loading && <InlineLoader size="small" color="white" />}
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
+          <div>
+            <CardTitle className="text-2xl">Welcome Back</CardTitle>
+            <CardDescription>
+              Sign in to your TrendMorphAI account
+            </CardDescription>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">
-              Or continue with
-            </span>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="username" className="text-sm font-medium">
+                Username
+              </label>
+              <Input
+                id="username"
+                name="username"
+                placeholder="Enter your username"
+                value={form.username}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <InlineLoader size="small" color="white" />}
+              {loading ? "Signing in..." : "Sign in"}
+            </Button>
+          </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
           </div>
-        </div>
 
-        <GoogleLoginButton />
+          <GoogleLoginButton />
 
-        {/* Add register link */}
-        <div className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
-          <button
-            type="button"
-            onClick={() => navigate("/register")}
-            className="text-orange-500 hover:text-orange-600 font-medium"
-          >
-            Register here
-          </button>
-        </div>
-      </div>
+          <div className="text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto font-normal"
+              onClick={() => navigate("/register")}
+            >
+              Register here
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

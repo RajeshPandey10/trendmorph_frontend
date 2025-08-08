@@ -74,21 +74,51 @@ export default function TrendingVideos({ niche }) {
 
   return (
     <div className="mt-8">
-      <h3 className="text-xl font-semibold mb-4">
-        Top Trending Videos in {niche}
-      </h3>
+      <div className="text-center mb-8">
+        <div className="glass-effect rounded-2xl p-6 modern-shadow-lg max-w-2xl mx-auto">
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent mb-2">
+            Top Trending Videos in {niche}
+          </h3>
+          <p className="text-muted-foreground text-sm">
+            Discover what's trending and get inspired for your content
+          </p>
+        </div>
+      </div>
+
       {loading && <ComponentLoader message="Loading trending videos..." />}
+
       {error && (
-        <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-600 text-sm">
-          {error}
+        <div className="mb-6 p-4 rounded-xl glass-effect border border-destructive/20 text-destructive dark:text-destructive text-sm modern-shadow">
+          <div className="flex items-center gap-2">
+            <span>⚠️</span>
+            {error}
+          </div>
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {Array.isArray(videos) && videos.length > 0
-          ? videos.map((video) => <VideoCard key={video.id} {...video} />)
+          ? videos.map((video, index) => (
+              <div
+                key={video.id}
+                className="float-element"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <VideoCard {...video} />
+              </div>
+            ))
           : !loading && (
-              <div className="col-span-full text-center py-8 text-gray-500">
-                No trending videos found for {niche}
+              <div className="col-span-full text-center py-12">
+                <div className="glass-effect rounded-2xl p-8 modern-shadow max-w-md mx-auto">
+                  <div className="text-4xl mb-4">📹</div>
+                  <h4 className="text-lg font-semibold mb-2 text-foreground dark:text-foreground">
+                    No Videos Found
+                  </h4>
+                  <p className="text-muted-foreground text-sm">
+                    No trending videos found for {niche}. Try selecting a
+                    different niche.
+                  </p>
+                </div>
               </div>
             )}
       </div>
