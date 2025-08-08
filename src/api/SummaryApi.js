@@ -1,28 +1,39 @@
 import axios from "axios";
 
-const backendDomain =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://trendmorph-ai-backend.onrender.com";
+const backendDomain = import.meta.env.VITE_API_BASE_URL;
 
-// Force production backend URL for OAuth
+// Use production backend for OAuth only in production
 const PRODUCTION_BACKEND = "https://trendmorph-ai-backend.onrender.com";
+
+// Django Webscraping Backend
+const WEBSCRAPING_BACKEND = "https://backend-webscraping-apis.onrender.com";
 
 // Debug logging for environment
 console.log("Frontend Environment Check:");
 console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
 console.log("Backend Domain:", backendDomain);
 console.log("Production Backend:", PRODUCTION_BACKEND);
-console.log("OAuth URL will be:", `${PRODUCTION_BACKEND}/api/auth/google`);
+console.log("Webscraping Backend:", WEBSCRAPING_BACKEND);
+console.log("OAuth URL will be:", `${backendDomain}/api/auth/google`);
 
 // Image Caption API Domain (Keep local)
 const imageCaptionDomain =
   import.meta.env.VITE_IMAGE_CAPTION_API || "http://127.0.0.1:5000";
 
-// Create axios instance with base configuration - use production backend
+// Create axios instance with base configuration - use environment backend
 const axiosInstance = axios.create({
-  baseURL: PRODUCTION_BACKEND, // Always use production backend
+  baseURL: backendDomain, // Use environment-specific backend
   withCredentials: true,
   timeout: 30000, // 30 second timeout
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Create axios instance for Django webscraping API
+const webscrapingInstance = axios.create({
+  baseURL: WEBSCRAPING_BACKEND,
+  timeout: 60000, // 60 second timeout for webscraping
   headers: {
     "Content-Type": "application/json",
   },
@@ -177,8 +188,46 @@ const SummaryApi = {
   // Verify token
   verifyToken: (token) => axiosInstance.post("/api/auth/verify", { token }),
 
-  // Trending Content
-  getTrendingPosts: (params) => axiosInstance.get("/api/trends/", { params }),
+  // Trending Content - with webscraping fallback
+  getTrendingPosts: async (params) => {
+    try {
+      return await axiosInstance.get("/api/trends/", { params });
+    } catch (error) {
+      console.warn(
+        "Node.js trends failed, trying webscraping backend:",
+        error.message
+      );
+      try {
+        // Fallback to webscraping backend - use correct endpoints
+        const platform = params?.platform || "youtube";
+        switch (platform.toLowerCase()) {
+          case "youtube":
+            return await SummaryApi.getYoutubeTrending(
+              params?.keyword,
+              params?.category
+            );
+          case "reddit":
+            return await SummaryApi.getRedditTrending(
+              params?.keyword,
+              params?.subreddit
+            );
+          case "pinterest":
+            return await SummaryApi.getPinterestTrending(
+              params?.topic,
+              params?.hashtag
+            );
+          default:
+            return await SummaryApi.getYoutubeTrending(
+              params?.keyword,
+              params?.category
+            );
+        }
+      } catch (webscrapingError) {
+        console.error("Both trends endpoints failed:", webscrapingError);
+        throw error; // Throw original error
+      }
+    }
+  },
   /**
    * Fetches niche information. Without platform, returns available platforms or posts.
    * With platform, returns platform-specific suggestions.
@@ -245,19 +294,14 @@ const SummaryApi = {
       title: data.title,
       niche: data.niche,
       platform: data.platform,
-      messages: data.messages?.map((msg) => ({
-        query: msg.role === "user" ? msg.content : "",
-        response: msg.role === "assistant" ? msg.content : "",
-        role: msg.role,
-      })),
+      messages: data.messages || [],
     }),
 
   // Post a message to a session - Updated to match backend format
   createSessionMessage: (sessionId, data) =>
     axiosInstance.post(`/api/chat/sessions/${sessionId}/messages`, {
-      query: data.role === "user" ? data.content : "",
-      response: data.role === "assistant" ? data.content : "",
       role: data.role,
+      content: data.content,
     }),
 
   deleteChatSession: (sessionId) =>
@@ -276,27 +320,33 @@ const SummaryApi = {
   normalizeMessages: (data) => {
     if (!data) return [];
 
-    // Handle array response
+    // Handle array response (direct messages array)
     if (Array.isArray(data)) {
       return data.map((msg) => ({
-        role: msg.role || (msg.query ? "user" : "assistant"),
-        content: msg.content || msg.query || msg.response || "",
+        id: msg._id || msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
       }));
     }
 
     // Handle paginated response
     if (data.results && Array.isArray(data.results)) {
       return data.results.map((msg) => ({
-        role: msg.role || (msg.query ? "user" : "assistant"),
-        content: msg.content || msg.query || msg.response || "",
+        id: msg._id || msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
       }));
     }
 
     // Handle messages wrapped in object
     if (data.messages && Array.isArray(data.messages)) {
       return data.messages.map((msg) => ({
-        role: msg.role || (msg.query ? "user" : "assistant"),
-        content: msg.content || msg.query || msg.response || "",
+        id: msg._id || msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
       }));
     }
 
@@ -309,6 +359,100 @@ const SummaryApi = {
     }
 
     return [];
+  },
+
+  // Webscraping API methods
+  // Health check for webscraping backend
+  webscrapingHealthCheck: async () => {
+    try {
+      const response = await webscrapingInstance.get("/api/health/");
+      return response;
+    } catch (error) {
+      console.error("Webscraping service check failed:", error);
+      return { data: { status: "Webscraping service unavailable" } };
+    }
+  },
+
+  // Get YouTube trending videos
+  getYoutubeTrending: async (keyword = "", category = "") => {
+    try {
+      const params = {};
+      if (keyword) params.keyword = keyword;
+      if (category) params.category = category;
+
+      const response = await webscrapingInstance.get("/api/youtube/", {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("YouTube trending videos error:", error);
+      throw error;
+    }
+  },
+
+  // Get Reddit trending posts
+  getRedditTrending: async (keyword = "", subreddit = "") => {
+    try {
+      const params = {};
+      if (keyword) params.keyword = keyword;
+      if (subreddit) params.subreddit = subreddit;
+
+      const response = await webscrapingInstance.get("/api/reddit/", {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("Reddit trending posts error:", error);
+      throw error;
+    }
+  },
+
+  // Get Pinterest trending pins
+  getPinterestTrending: async (topic = "", hashtag = "") => {
+    try {
+      const params = {};
+      if (topic) params.topic = topic;
+      if (hashtag) params.hashtag = hashtag;
+
+      const response = await webscrapingInstance.get("/api/pinterest/", {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("Pinterest trending pins error:", error);
+      throw error;
+    }
+  },
+
+  // Scrape niche-specific content (updated to use available endpoints)
+  scrapeNicheContent: async (niche, platform = "youtube") => {
+    try {
+      switch (platform.toLowerCase()) {
+        case "youtube":
+          return await SummaryApi.getYoutubeTrending(niche);
+        case "reddit":
+          return await SummaryApi.getRedditTrending(niche);
+        case "pinterest":
+          return await SummaryApi.getPinterestTrending(niche);
+        default:
+          return await SummaryApi.getYoutubeTrending(niche);
+      }
+    } catch (error) {
+      console.error("Niche content scraping error:", error);
+      throw error;
+    }
+  },
+
+  // Keep alive function for Django backend
+  keepWebscrapingAlive: async () => {
+    try {
+      const response = await webscrapingInstance.get("/api/health/");
+      console.log("Django webscraping backend keep-alive successful");
+      return response;
+    } catch (error) {
+      console.error("Django webscraping backend keep-alive failed:", error);
+      return null;
+    }
   },
 };
 

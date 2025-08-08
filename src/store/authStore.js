@@ -40,15 +40,38 @@ export const useAuthStore = create((set, get) => ({
   login: async (form) => {
     set({ loading: true, error: null });
     try {
+      console.log("🔐 Attempting login with:", { username: form.username });
       const res = await SummaryApi.login(form);
+      console.log("✅ Login response:", res.data);
+
       localStorage.setItem("access_token", res.data.access_token);
-      localStorage.setItem("refresh_token", res.data.refresh_token);
+      if (res.data.refresh_token) {
+        localStorage.setItem("refresh_token", res.data.refresh_token);
+      }
+
+      // Get user data from response
+      const userData = res.data.user || {};
+
       set({
         access: res.data.access_token,
         refresh: res.data.refresh_token,
         isAuthenticated: true,
+        user: userData, // Set user data directly from login response
       });
-      await get().fetchProfile();
+      console.log("👤 User set from login:", userData);
+
+      // Also fetch fresh profile data to ensure we have complete user info
+      try {
+        const profileData = await get().fetchProfile();
+        console.log("👤 Profile data after login:", profileData);
+      } catch (profileError) {
+        console.warn(
+          "⚠️ Profile fetch after login failed, but login was successful:",
+          profileError
+        );
+      }
+
+      console.log("✅ Login successful, final user state:", get().user);
       return true;
     } catch (err) {
       const errorMessage =
@@ -122,15 +145,32 @@ export const useAuthStore = create((set, get) => ({
 
   fetchProfile: async () => {
     try {
+      console.log("📱 Fetching user profile...");
       const res = await SummaryApi.profile();
-      set({ user: res.data });
+      console.log("✅ Profile response:", res.data);
+
+      // Make sure we're getting the user object properly
+      const userData = res.data.user || res.data;
+
+      if (!userData || (!userData.username && !userData.email)) {
+        console.error(
+          "❌ Invalid user data format in profile response:",
+          res.data
+        );
+        throw new Error("Invalid user data format");
+      }
+
+      set({ user: userData });
+      console.log("👤 User set to:", userData);
+      return userData;
     } catch (error) {
-      console.error("Failed to fetch profile:", error);
+      console.error("❌ Failed to fetch profile:", error);
       // If profile fetch fails due to invalid token, clear auth
       if (error.response?.status === 401) {
         get().clearAuth();
       }
       set({ user: null });
+      return null;
     }
   },
 

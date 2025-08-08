@@ -25,16 +25,28 @@ export default function HistoryPage() {
         setLoading(true);
         setError(null);
 
-        // Fetch chat sessions
+        // Fetch chat sessions from backend - use the new format
         const sessionsRes = await SummaryApi.getChatSessions();
-        let sessions = sessionsRes.data.results || sessionsRes.data || [];
+        console.log("Sessions response:", sessionsRes.data);
 
-        // Enrich sessions with messages and metadata
+        // The backend now returns sessions directly in data array
+        const sessions = Array.isArray(sessionsRes.data.data)
+          ? sessionsRes.data.data
+          : [];
+
+        if (sessions.length === 0) {
+          setHistory([]);
+          return;
+        }
+
+        // Enrich sessions with messages
         const enriched = await Promise.all(
           sessions.map(async (session) => {
             try {
               const msgRes = await SummaryApi.getSessionMessages(session.id);
-              const messages = SummaryApi.normalizeMessages(msgRes.data);
+              const messages = SummaryApi.normalizeMessages(
+                msgRes.data.data || msgRes.data
+              );
               const firstUserMsg = messages.find((m) => m.role === "user");
               const lastMsg = messages[messages.length - 1];
 
@@ -45,18 +57,28 @@ export default function HistoryPage() {
                   firstUserMsg?.content ||
                   `Chat ${session.id}`,
                 preview: lastMsg?.content || "No messages",
-                created_at: session.created_at || session.createdAt,
+                created_at: session.created_at,
                 messages,
                 niche: session.niche,
                 platform: session.platform,
-                messageCount: messages.length,
+                messageCount: session.messageCount || messages.length,
               };
             } catch (err) {
               console.error(
                 `Failed to fetch messages for session ${session.id}:`,
                 err
               );
-              return null;
+              // Return session without messages if message fetch fails
+              return {
+                id: session.id,
+                title: session.title || `Chat ${session.id}`,
+                preview: "No messages available",
+                created_at: session.created_at,
+                messages: [],
+                niche: session.niche,
+                platform: session.platform,
+                messageCount: session.messageCount || 0,
+              };
             }
           })
         );
