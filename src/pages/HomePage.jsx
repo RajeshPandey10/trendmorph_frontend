@@ -29,9 +29,9 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
         {/* Header Section */}
         <div className="text-center mb-8 sm:mb-12">
-          <div className="backdrop-blur-sm bg-transparent border border-primary/20 rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto">
+          <div className="sm:backdrop-blur-sm sm:bg-transparent sm:border sm:border-primary/20 sm:rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto">
             <div className="flex items-center justify-center mb-4">
-              <div className="p-3 rounded-full bg-gradient-to-r from-primary/10 to-ring/10 backdrop-blur-sm">
+              <div className="p-3 rounded-full bg-gradient-to-r from-primary/10 to-ring/10 sm:backdrop-blur-sm">
                 <span className="text-3xl sm:text-4xl">🎯</span>
               </div>
             </div>
@@ -96,7 +96,7 @@ export default function HomePage() {
         {/* Mobile: Quick action hint */}
         {isMobile && selectedNiche && (
           <div className="text-center mt-6">
-            <div className="glass-effect rounded-xl p-4 modern-shadow glow-border max-w-sm mx-auto">
+            <div className="p-4 max-w-sm mx-auto">
               <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 🎉{" "}
                 <span className="font-semibold text-primary dark:text-primary">
