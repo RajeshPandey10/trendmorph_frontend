@@ -29,9 +29,9 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
         {/* Header Section */}
         <div className="text-center mb-8 sm:mb-12">
-          <div className="glass-effect rounded-2xl p-6 sm:p-8 modern-shadow-lg glow-border max-w-2xl mx-auto">
+          <div className="backdrop-blur-sm bg-transparent border border-primary/20 rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto">
             <div className="flex items-center justify-center mb-4">
-              <div className="p-3 rounded-full bg-gradient-to-r from-primary/20 to-ring/20 modern-shadow">
+              <div className="p-3 rounded-full bg-gradient-to-r from-primary/10 to-ring/10 backdrop-blur-sm">
                 <span className="text-3xl sm:text-4xl">🎯</span>
               </div>
             </div>
