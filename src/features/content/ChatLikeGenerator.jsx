@@ -80,6 +80,17 @@ export default function ChatLikeGenerator() {
     }
   };
 
+  // Clear chat on component mount (fresh start) unless coming from history
+  useEffect(() => {
+    if (!historyItem) {
+      // Clear any existing chat state for fresh start
+      setCurrentChatId(null);
+      setChats([]);
+      setInput("");
+      setError(null);
+    }
+  }, []); // Only run on mount
+
   // Handle history item on mount
   useEffect(() => {
     if (historyItem) {
