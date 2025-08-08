@@ -37,22 +37,7 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      // NOTE: Proxy disabled to use production backend even in development
-      // Uncomment the proxy section below if you need to use local backend
-      /*
-      proxy: {
-        "/api": {
-          target: "http://localhost:8000", // Local backend for development only
-          changeOrigin: true,
-          secure: false,
-        },
-        "/auth": {
-          target: "http://localhost:8000", // Local backend for development only
-          changeOrigin: true,
-          secure: false,
-        },
-      },
-      */
+   
     },
   };
 });

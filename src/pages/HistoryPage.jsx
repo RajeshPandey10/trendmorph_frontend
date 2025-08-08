@@ -113,7 +113,7 @@ export default function HistoryPage() {
     setCurrentChatId(chat.id);
     setNiche(chat.niche);
     setPlatform(chat.platform);
-    navigate("/generate", { state: { historyItem: chat } });
+    navigate("/generate", { state: { historyItem: chat, fromHistory: true } });
   };
 
   if (!isAuthenticated) {

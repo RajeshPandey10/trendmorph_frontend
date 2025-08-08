@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PageLoader } from "./components/ui/Loading";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ScrollToTopWrapper from "./components/ui/ScrollToTopWrapper";
 
 // Lazy load components
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -54,7 +55,9 @@ const RouterErrorElement = ({ error }) => (
 // Wrapper component with Suspense and Error Boundary
 const LazyWrapper = ({ children, fallback = <PageLoader /> }) => (
   <ErrorBoundary>
-    <Suspense fallback={fallback}>{children}</Suspense>
+    <Suspense fallback={fallback}>
+      <ScrollToTopWrapper>{children}</ScrollToTopWrapper>
+    </Suspense>
   </ErrorBoundary>
 );
 

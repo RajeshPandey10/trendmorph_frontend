@@ -1,6 +1,20 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import ChatLikeGenerator from "../features/content/ChatLikeGenerator";
+import { useChatStore } from "../store/chatStore";
 
 export default function GeneratePage() {
+  const location = useLocation();
+  const { reset } = useChatStore();
+
+  useEffect(() => {
+    // Clear chat when entering Generate page unless coming from History
+    const fromHistory = location.state?.fromHistory;
+    if (!fromHistory) {
+      reset();
+    }
+  }, [reset, location.state]);
+
   return (
     <div className="flex flex-col items-center gap-8 w-full page-transition min-h-screen">
       {/* Minimal Header - Much Less Distracting */}

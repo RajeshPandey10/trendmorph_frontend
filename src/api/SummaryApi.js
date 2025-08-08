@@ -370,7 +370,7 @@ const SummaryApi = {
   // Health check for webscraping backend
   webscrapingHealthCheck: async () => {
     try {
-      const response = await webscrapingInstance.get("/api/health/");
+      const response = await webscrapingInstance.get("/health/");
       return response;
     } catch (error) {
       console.error("Webscraping service check failed:", error);
@@ -395,13 +395,10 @@ const SummaryApi = {
   },
 
   // Get Reddit trending posts
-  getRedditTrending: async (query = "popular") => {
+  getRedditTrending: async (subreddit = "popular") => {
     try {
-      const params = {};
-      if (query && query !== "popular") params.query = query;
-
       const response = await webscrapingInstance.get("/reddit/", {
-        params,
+        params: { subreddit },
       });
       return response;
     } catch (error) {
@@ -411,55 +408,10 @@ const SummaryApi = {
   },
 
   // Get Pinterest trending pins
-  getPinterestTrending: async (topic = "", hashtag = "") => {
+  getPinterestTrending: async (query = "trending") => {
     try {
-      const params = {};
-      if (topic) params.topic = topic;
-      if (hashtag) params.hashtag = hashtag;
-
       const response = await webscrapingInstance.get("/pinterest/", {
-        params,
-      });
-      return response;
-    } catch (error) {
-      console.error("Pinterest trending pins error:", error);
-      throw error;
-    }
-  },
-
-  // Get Reddit trending posts
-  getRedditTrending: async (query = "popular") => {
-    try {
-      const params = {};
-      if (query && query !== "popular") params.query = query;
-
-      const url = import.meta.env.DEV
-        ? "/api/webscraping/reddit/"
-        : "/api/reddit/";
-
-      const response = await webscrapingInstance.get(url, {
-        params,
-      });
-      return response;
-    } catch (error) {
-      console.error("Reddit trending posts error:", error);
-      throw error;
-    }
-  },
-
-  // Get Pinterest trending pins
-  getPinterestTrending: async (topic = "", hashtag = "") => {
-    try {
-      const params = {};
-      if (topic) params.topic = topic;
-      if (hashtag) params.hashtag = hashtag;
-
-      const url = import.meta.env.DEV
-        ? "/api/webscraping/pinterest/"
-        : "/api/pinterest/";
-
-      const response = await webscrapingInstance.get(url, {
-        params,
+        params: { query },
       });
       return response;
     } catch (error) {
