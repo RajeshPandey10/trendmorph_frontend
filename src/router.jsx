@@ -98,9 +98,9 @@ const router = createBrowserRouter([
         path: "generate",
         element: (
           <LazyWrapper>
-            {/* <ProtectedRoute> */}
+            <ProtectedRoute>
               <GeneratePage />
-            {/* </ProtectedRoute> */}
+            </ProtectedRoute>
           </LazyWrapper>
         ),
       },
@@ -108,9 +108,9 @@ const router = createBrowserRouter([
         path: "history",
         element: (
           <LazyWrapper>
-            {/* <ProtectedRoute> */}
+            <ProtectedRoute>
               <HistoryPage />
-            {/* </ProtectedRoute> */}
+            </ProtectedRoute>
           </LazyWrapper>
         ),
       },

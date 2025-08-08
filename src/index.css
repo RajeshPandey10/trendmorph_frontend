@@ -27,9 +27,9 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 224 71% 6%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 224 71% 6%;
     --popover-foreground: 210 40% 98%;
     --primary: 47 96% 53%;
     --primary-foreground: 26 83% 14%;
@@ -39,7 +39,7 @@
     --muted-foreground: 215 20.2% 65.1%;
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
@@ -55,6 +55,89 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Animated Background Logo */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 500px;
+    height: 500px;
+    transform: translate(-50%, -50%);
+    background-image: url('/favicon.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.12;
+    z-index: -1;
+    animation: continuousRotate 30s linear infinite, gentlePulse 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Large screen positioning - move to right for main pages */
+  @media (min-width: 1024px) {
+    body::before {
+      left: 58%;
+    }
+  }
+
+  /* Auth pages - keep logo centered at 50% */
+  .auth-page body::before {
+    left: 50% !important;
+  }
+
+  @media (min-width: 1024px) {
+    .auth-page body::before {
+      left: 50% !important;
+    }
+  }
+
+  /* Dark mode background logo */
+  .dark body::before {
+    opacity: 0.12;
+    filter: brightness(1.3) hue-rotate(15deg) saturate(1.2);
+  }
+
+  /* Continuous rotation animation */
+  @keyframes continuousRotate {
+    0% {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+
+  /* Gentle pulsing effect */
+  @keyframes gentlePulse {
+    0%, 100% {
+      opacity: 0.12;
+      filter: none;
+    }
+    50% {
+      opacity: 0.15;
+      filter: blur(0.5px);
+    }
+  }
+
+  /* Dark mode pulse */
+  .dark body::before {
+    animation: continuousRotate 30s linear infinite, gentlePulseDark 8s ease-in-out infinite;
+  }
+
+  @keyframes gentlePulseDark {
+    0%, 100% {
+      opacity: 0.12;
+      filter: brightness(1.3) hue-rotate(15deg) saturate(1.2);
+    }
+    50% {
+      opacity: 0.15;
+      filter: brightness(1.3) hue-rotate(15deg) saturate(1.2) blur(0.5px);
+    }
   }
 }
 
@@ -74,4 +157,269 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* Dark mode improvements */
+.dark {
+  color-scheme: dark;
+}
+
+/* Better text contrast in dark mode */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: hsl(var(--foreground));
+}
+
+.dark p {
+  color: hsl(var(--foreground) / 0.9);
+}
+
+/* Niche components dark mode fixes */
+.dark .niche-title {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .niche-description {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Form elements dark mode */
+.dark input, .dark textarea, .dark select {
+  background-color: hsl(var(--input));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark input:focus, .dark textarea:focus, .dark select:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+}
+
+/* Video card and trending videos dark mode improvements */
+.dark .video-card-title {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .video-card-text {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Enhanced dark mode for components */
+.dark .glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure buttons are visible in dark mode */
+.dark .modern-button {
+  border-color: hsl(var(--border));
+}
+
+.dark .modern-button:hover {
+  background-color: hsl(var(--accent));
+  border-color: hsl(var(--primary));
+}
+
+/* Primary color consistency in dark mode */
+.dark .text-primary {
+  color: hsl(var(--primary)) !important;
+}
+
+.dark .bg-primary {
+  background-color: hsl(var(--primary)) !important;
+}
+
+/* Sidebar active link enhancement for dark mode */
+.dark nav a[class*="bg-primary"] {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark nav a:not([class*="bg-primary"]):hover {
+  background-color: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+/* Background animation responsiveness */
+@media (max-width: 768px) {
+  body::before {
+    width: 400px;
+    height: 400px;
+    opacity: 0.10;
+  }
+}
+
+@media (max-width: 480px) {
+  body::before {
+    width: 300px;
+    height: 300px;
+    opacity: 0.08;
+  }
+}
+
+/* Mobile-specific responsive improvements */
+@media (max-width: 640px) {
+  .glass-effect {
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  
+  .dark .glass-effect {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  
+  /* Reduce padding on mobile */
+  .page-transition {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Optimize floating animation for mobile */
+  .float-element {
+    animation: floatUpMobile 4s ease-in-out infinite;
+  }
+  
+  /* Ensure mobile sidebar is completely solid */
+  aside[class*="fixed"] {
+    background-color: hsl(var(--card)) !important;
+    backdrop-filter: none !important;
+  }
+  
+  .dark aside[class*="fixed"] {
+    background-color: hsl(var(--card)) !important;
+  }
+}
+
+/* Sticky navbar improvements */
+.sticky {
+  backdrop-filter: blur(12px);
+  background-color: hsl(var(--card) / 0.95) !important;
+}
+
+.dark .sticky {
+  background-color: hsl(var(--card) / 0.95) !important;
+}
+
+@keyframes floatUpMobile {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Modern UI Enhancements */
+
+/* Glassmorphism effect for cards */
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+}
+
+.dark .glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced button hover effects */
+.modern-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.modern-button:hover::before {
+  left: 100%;
+}
+
+/* Subtle gradient backgrounds */
+.gradient-bg {
+  background: linear-gradient(135deg, 
+    hsl(var(--background)) 0%, 
+    hsl(var(--muted) / 0.3) 50%, 
+    hsl(var(--background)) 100%);
+}
+
+/* Enhanced shadows */
+.modern-shadow {
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.modern-shadow-lg {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dark .modern-shadow {
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.dark .modern-shadow-lg {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.3),
+    0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+/* Floating animation for interactive elements */
+.float-element {
+  animation: floatUp 3s ease-in-out infinite;
+}
+
+@keyframes floatUp {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Subtle border glow effect */
+.glow-border {
+  border: 1px solid transparent;
+  background: linear-gradient(hsl(var(--background)), hsl(var(--background))) padding-box,
+              linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--ring) / 0.2)) border-box;
+}
+
+/* Enhanced focus states */
+.modern-focus:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+}
+
+/* Smooth page transitions */
+.page-transition {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

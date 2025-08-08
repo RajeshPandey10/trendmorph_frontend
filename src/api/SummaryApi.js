@@ -1,24 +1,39 @@
 import axios from "axios";
 
-const backendDomain =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const backendDomain = import.meta.env.VITE_API_BASE_URL;
 
-// Image Caption API Domain
-const imageCaptionDomain = "http://127.0.0.1:5000";
+// Use production backend for OAuth only in production
+const PRODUCTION_BACKEND = "https://trendmorph-ai-backend.onrender.com";
 
-// Validate Google Client ID
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-if (!GOOGLE_CLIENT_ID) {
-  console.error(
-    "Google Client ID is not configured. Please set VITE_GOOGLE_CLIENT_ID in your .env file"
-  );
-}
+// Django Webscraping Backend
+const WEBSCRAPING_BACKEND = "https://backend-webscraping-apis.onrender.com";
 
-// Create axios instance with base configuration
+// Debug logging for environment
+console.log("Frontend Environment Check:");
+console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+console.log("Backend Domain:", backendDomain);
+console.log("Production Backend:", PRODUCTION_BACKEND);
+console.log("Webscraping Backend:", WEBSCRAPING_BACKEND);
+console.log("OAuth URL will be:", `${backendDomain}/api/auth/google`);
+
+// Image Caption API Domain (Keep local)
+const imageCaptionDomain =
+  import.meta.env.VITE_IMAGE_CAPTION_API || "http://127.0.0.1:5000";
+
+// Create axios instance with base configuration - use environment backend
 const axiosInstance = axios.create({
-  baseURL: backendDomain,
+  baseURL: backendDomain, // Use environment-specific backend
   withCredentials: true,
   timeout: 30000, // 30 second timeout
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Create axios instance for Django webscraping API
+const webscrapingInstance = axios.create({
+  baseURL: WEBSCRAPING_BACKEND,
+  timeout: 60000, // 60 second timeout for webscraping
   headers: {
     "Content-Type": "application/json",
   },
@@ -33,19 +48,19 @@ const imageCaptionInstance = axios.create({
   },
 });
 
-// Add token to requests automatically (commented out for now as authentication is disabled)
+// Add token to requests automatically
 axiosInstance.interceptors.request.use(
   (config) => {
-    // const token = localStorage.getItem("access_token");
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle token refresh (disabled for now)
+// Add response interceptor to handle token refresh
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -61,38 +76,47 @@ axiosInstance.interceptors.response.use(
       });
     }
 
-    // Handle 401 unauthorized errors with token refresh (disabled)
-    // if (error.response?.status === 401 && !originalRequest._retry) {
-    //   originalRequest._retry = true;
+    // Handle 401 unauthorized errors with token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
 
-    //   const refreshToken = localStorage.getItem("refresh_token");
-    //   if (refreshToken) {
-    //     try {
-    //       const response = await axios.post(
-    //         `${backendDomain}/api/users/token/refresh/`,
-    //         {
-    //           refresh: refreshToken,
-    //         }
-    //       );
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (refreshToken) {
+        try {
+          const response = await axios.post(
+            `${PRODUCTION_BACKEND}/api/auth/token/refresh/`,
+            {
+              refresh: refreshToken,
+            }
+          );
 
-    //       const newToken = response.data.access;
-    //       localStorage.setItem("access_token", newToken);
-    //       originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          const newToken = response.data.access;
+          localStorage.setItem("access_token", newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
-    //       return axiosInstance(originalRequest);
-    //     } catch (refreshError) {
-    //       // Refresh failed, clear tokens and redirect to login
-    //       localStorage.removeItem("access_token");
-    //       localStorage.removeItem("refresh_token");
+          return axiosInstance(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and redirect to login
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
 
-    //       // Only redirect if we're not already on login page
-    //       if (!window.location.pathname.includes("/login")) {
-    //         window.location.href = "/login";
-    //       }
-    //       return Promise.reject(refreshError);
-    //     }
-    //   }
-    // }
+          // Only redirect if we're not already on login page
+          if (!window.location.pathname.includes("/login")) {
+            window.location.href = "/login";
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
+        // No refresh token, redirect to login
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+
+        if (!window.location.pathname.includes("/login")) {
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+    }
 
     // Handle specific error statuses
     if (error.response?.status === 404) {
@@ -113,68 +137,35 @@ const SummaryApi = {
   // Health check
   healthCheck: () =>
     axiosInstance
-      .get("/api/health/")
+      .get("/health")
       .catch(() => ({ data: { status: "Backend unavailable" } })),
 
   // User Authentication
-  register: (data) => axiosInstance.post("/api/users/register/", data),
-  login: (data) => axiosInstance.post("/api/users/login/", data),
-  refresh: (data) => axiosInstance.post("/api/users/token/refresh/", data),
+  register: (data) => axiosInstance.post("/api/auth/register", data),
+  login: (data) => axiosInstance.post("/api/auth/login", data),
+  refresh: (data) => axiosInstance.post("/api/auth/token/refresh", data),
   logout: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
-    return axiosInstance.post("/api/users/logout/");
+    return axiosInstance.post("/api/auth/logout");
   },
-  profile: () => axiosInstance.get("/api/users/profile/"),
+  profile: () => axiosInstance.get("/api/auth/profile"),
 
-  // Google OAuth with Django social auth endpoints
+  // Google OAuth - Always use production backend for OAuth
   initiateGoogleLogin: () => {
-    if (!GOOGLE_CLIENT_ID) {
-      throw new Error(
-        "Google Client ID is not configured. Please check your environment variables."
-      );
-    }
-
-    // Use the correct Django social auth endpoint
-    const redirectUri = `${backendDomain}/auth/social/google/login/callback/`;
-
-    // Log configuration for debugging
-    console.log("OAuth Configuration:", {
-      clientId: GOOGLE_CLIENT_ID,
-      redirectUri,
-      backendDomain,
-    });
-
-    // Build OAuth URL with required parameters
-    const params = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope: "email profile",
-      access_type: "offline",
-      prompt: "consent",
-    });
-
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-    console.log("Redirecting to:", googleAuthUrl);
-    window.location.href = googleAuthUrl;
+    // Always use production backend for OAuth to avoid CORS issues
+    const googleUrl = `${PRODUCTION_BACKEND}/api/auth/google`;
+    console.log("Initiating Google Login to:", googleUrl);
+    window.location.href = googleUrl;
   },
 
-  // Handle Google OAuth callback
-  handleGoogleCallback: async (code) => {
-    if (!code) {
-      throw new Error("Authorization code is required");
-    }
-
+  // Handle Google OAuth callback (called by backend redirect)
+  handleGoogleCallback: async (code, state) => {
     try {
-      // Exchange code for tokens using Django social auth endpoint
-      const response = await axiosInstance.post(
-        "/auth/social/google/login/callback/",
-        {
-          code,
-          state: localStorage.getItem("oauth_state"),
-        }
-      );
+      const response = await axiosInstance.post("/api/auth/google/callback", {
+        code,
+        state,
+      });
 
       // Handle successful login
       if (response.data.access_token) {
@@ -191,8 +182,52 @@ const SummaryApi = {
     }
   },
 
-  // Trending Content
-  getTrendingPosts: (params) => axiosInstance.get("/api/trends/", { params }),
+  // Get current user session
+  getSession: () => axiosInstance.get("/api/auth/session"),
+
+  // Verify token
+  verifyToken: (token) => axiosInstance.post("/api/auth/verify", { token }),
+
+  // Trending Content - with webscraping fallback
+  getTrendingPosts: async (params) => {
+    try {
+      return await axiosInstance.get("/api/trends/", { params });
+    } catch (error) {
+      console.warn(
+        "Node.js trends failed, trying webscraping backend:",
+        error.message
+      );
+      try {
+        // Fallback to webscraping backend - use correct endpoints
+        const platform = params?.platform || "youtube";
+        switch (platform.toLowerCase()) {
+          case "youtube":
+            return await SummaryApi.getYoutubeTrending(
+              params?.keyword,
+              params?.category
+            );
+          case "reddit":
+            return await SummaryApi.getRedditTrending(
+              params?.keyword,
+              params?.subreddit
+            );
+          case "pinterest":
+            return await SummaryApi.getPinterestTrending(
+              params?.topic,
+              params?.hashtag
+            );
+          default:
+            return await SummaryApi.getYoutubeTrending(
+              params?.keyword,
+              params?.category
+            );
+        }
+      } catch (webscrapingError) {
+        console.error("Both trends endpoints failed:", webscrapingError);
+        throw error; // Throw original error
+      }
+    }
+  },
   /**
    * Fetches niche information. Without platform, returns available platforms or posts.
    * With platform, returns platform-specific suggestions.
@@ -248,69 +283,70 @@ const SummaryApi = {
     }
   },
 
-  // Chat Sessions
-  getChatSessions: () => axiosInstance.get("/api/trends/chat/sessions/"),
+  // Chat Sessions (Protected routes)
+  getChatSessions: () => axiosInstance.get("/api/chat/sessions"),
 
   getSessionMessages: (sessionId) =>
-    axiosInstance.get(`/api/trends/chat/sessions/${sessionId}/messages/`),
+    axiosInstance.get(`/api/chat/sessions/${sessionId}/messages`),
 
   createChatSession: (data) =>
-    axiosInstance.post("/api/trends/chat/sessions/", {
+    axiosInstance.post("/api/chat/sessions", {
       title: data.title,
       niche: data.niche,
       platform: data.platform,
-      messages: data.messages?.map((msg) => ({
-        query: msg.role === "user" ? msg.content : "",
-        response: msg.role === "assistant" ? msg.content : "",
-        role: msg.role,
-      })),
+      messages: data.messages || [],
     }),
 
   // Post a message to a session - Updated to match backend format
   createSessionMessage: (sessionId, data) =>
-    axiosInstance.post(`/api/trends/chat/sessions/${sessionId}/messages/`, {
-      query: data.role === "user" ? data.content : "",
-      response: data.role === "assistant" ? data.content : "",
+    axiosInstance.post(`/api/chat/sessions/${sessionId}/messages`, {
       role: data.role,
+      content: data.content,
     }),
 
   deleteChatSession: (sessionId) =>
-    axiosInstance.delete(`/api/trends/chat/sessions/${sessionId}/`),
+    axiosInstance.delete(`/api/chat/sessions/${sessionId}`),
 
-  // Legacy History endpoints with message format handling
+  // History endpoints (Protected routes)
   getHistory: (sessionId) =>
-    axiosInstance.get("/api/trends/history/", {
+    axiosInstance.get("/api/history", {
       params: sessionId ? { session: sessionId } : undefined,
     }),
 
   deleteHistoryMessage: (messageId) =>
-    axiosInstance.delete(`/api/trends/history/${messageId}/`),
+    axiosInstance.delete(`/api/history/${messageId}`),
 
   // Helper method to normalize message data from different endpoints
   normalizeMessages: (data) => {
     if (!data) return [];
 
-    // Handle array response
+    // Handle array response (direct messages array)
     if (Array.isArray(data)) {
       return data.map((msg) => ({
-        role: msg.role || (msg.query ? "user" : "assistant"),
-        content: msg.content || msg.query || msg.response || "",
+        id: msg._id || msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
       }));
     }
 
     // Handle paginated response
     if (data.results && Array.isArray(data.results)) {
       return data.results.map((msg) => ({
-        role: msg.role || (msg.query ? "user" : "assistant"),
-        content: msg.content || msg.query || msg.response || "",
+        id: msg._id || msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
       }));
     }
 
     // Handle messages wrapped in object
     if (data.messages && Array.isArray(data.messages)) {
       return data.messages.map((msg) => ({
-        role: msg.role || (msg.query ? "user" : "assistant"),
-        content: msg.content || msg.query || msg.response || "",
+        id: msg._id || msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
       }));
     }
 
@@ -323,6 +359,100 @@ const SummaryApi = {
     }
 
     return [];
+  },
+
+  // Webscraping API methods
+  // Health check for webscraping backend
+  webscrapingHealthCheck: async () => {
+    try {
+      const response = await webscrapingInstance.get("/api/health/");
+      return response;
+    } catch (error) {
+      console.error("Webscraping service check failed:", error);
+      return { data: { status: "Webscraping service unavailable" } };
+    }
+  },
+
+  // Get YouTube trending videos
+  getYoutubeTrending: async (keyword = "", category = "") => {
+    try {
+      const params = {};
+      if (keyword) params.keyword = keyword;
+      if (category) params.category = category;
+
+      const response = await webscrapingInstance.get("/api/youtube/", {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("YouTube trending videos error:", error);
+      throw error;
+    }
+  },
+
+  // Get Reddit trending posts
+  getRedditTrending: async (keyword = "", subreddit = "") => {
+    try {
+      const params = {};
+      if (keyword) params.keyword = keyword;
+      if (subreddit) params.subreddit = subreddit;
+
+      const response = await webscrapingInstance.get("/api/reddit/", {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("Reddit trending posts error:", error);
+      throw error;
+    }
+  },
+
+  // Get Pinterest trending pins
+  getPinterestTrending: async (topic = "", hashtag = "") => {
+    try {
+      const params = {};
+      if (topic) params.topic = topic;
+      if (hashtag) params.hashtag = hashtag;
+
+      const response = await webscrapingInstance.get("/api/pinterest/", {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("Pinterest trending pins error:", error);
+      throw error;
+    }
+  },
+
+  // Scrape niche-specific content (updated to use available endpoints)
+  scrapeNicheContent: async (niche, platform = "youtube") => {
+    try {
+      switch (platform.toLowerCase()) {
+        case "youtube":
+          return await SummaryApi.getYoutubeTrending(niche);
+        case "reddit":
+          return await SummaryApi.getRedditTrending(niche);
+        case "pinterest":
+          return await SummaryApi.getPinterestTrending(niche);
+        default:
+          return await SummaryApi.getYoutubeTrending(niche);
+      }
+    } catch (error) {
+      console.error("Niche content scraping error:", error);
+      throw error;
+    }
+  },
+
+  // Keep alive function for Django backend
+  keepWebscrapingAlive: async () => {
+    try {
+      const response = await webscrapingInstance.get("/api/health/");
+      console.log("Django webscraping backend keep-alive successful");
+      return response;
+    } catch (error) {
+      console.error("Django webscraping backend keep-alive failed:", error);
+      return null;
+    }
   },
 };
 

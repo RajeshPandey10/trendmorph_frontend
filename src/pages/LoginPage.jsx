@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { InlineLoader } from "../components/ui/Loading";
@@ -23,6 +23,14 @@ export default function LoginPage() {
   const location = useLocation();
   const from = location.state?.from?.pathname || "/";
 
+  // Add auth-page class to body for centered logo
+  useEffect(() => {
+    document.body.classList.add("auth-page");
+    return () => {
+      document.body.classList.remove("auth-page");
+    };
+  }, []);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -36,15 +44,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-background via-background/80 to-muted/50 px-4 py-8">
+      {/* Background Logo */}
+      <div className="fixed inset-0 flex items-center justify-center opacity-5 pointer-events-none overflow-hidden">
+        <div className="w-96 h-96 transform rotate-12">
+          <Logo size="xl" animated={false} />
+        </div>
+      </div>
+
+      {/* Login Card */}
+      <Card className="w-full max-w-md relative z-10 glass-effect border-border/50 shadow-2xl">
+        <CardHeader className="text-center space-y-4 pb-2">
           <div className="flex justify-center">
             <Logo size="lg" animated={true} />
           </div>
           <div>
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent">
+              Welcome Back
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
               Sign in to your TrendMorphAI account
             </CardDescription>
           </div>
