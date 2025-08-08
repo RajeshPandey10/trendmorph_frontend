@@ -5,8 +5,10 @@ const backendDomain = import.meta.env.VITE_API_BASE_URL;
 // Use production backend for OAuth only in production
 const PRODUCTION_BACKEND = "https://trendmorph-ai-backend.onrender.com";
 
-// Django Webscraping Backend
-const WEBSCRAPING_BACKEND = "https://backend-webscraping-apis.onrender.com";
+// Django Webscraping Backend - use proxy in development to avoid CORS
+const WEBSCRAPING_BACKEND = import.meta.env.DEV
+  ? "/api/webscraping" // Use proxy in development
+  : "https://backend-webscraping-apis.onrender.com/api"; // Direct in production
 
 // Debug logging for environment
 console.log("Frontend Environment Check:");
@@ -36,7 +38,10 @@ const webscrapingInstance = axios.create({
   timeout: 60000, // 60 second timeout for webscraping
   headers: {
     "Content-Type": "application/json",
+    Accept: "application/json",
   },
+  // Add these for CORS
+  withCredentials: false,
 });
 
 // Create axios instance for image caption API
@@ -374,13 +379,12 @@ const SummaryApi = {
   },
 
   // Get YouTube trending videos
-  getYoutubeTrending: async (keyword = "", category = "") => {
+  getYoutubeTrending: async (query = "trending") => {
     try {
       const params = {};
-      if (keyword) params.keyword = keyword;
-      if (category) params.category = category;
+      if (query && query !== "trending") params.query = query;
 
-      const response = await webscrapingInstance.get("/api/youtube/", {
+      const response = await webscrapingInstance.get("/youtube/", {
         params,
       });
       return response;
@@ -391,13 +395,12 @@ const SummaryApi = {
   },
 
   // Get Reddit trending posts
-  getRedditTrending: async (keyword = "", subreddit = "") => {
+  getRedditTrending: async (query = "popular") => {
     try {
       const params = {};
-      if (keyword) params.keyword = keyword;
-      if (subreddit) params.subreddit = subreddit;
+      if (query && query !== "popular") params.query = query;
 
-      const response = await webscrapingInstance.get("/api/reddit/", {
+      const response = await webscrapingInstance.get("/reddit/", {
         params,
       });
       return response;
@@ -414,7 +417,48 @@ const SummaryApi = {
       if (topic) params.topic = topic;
       if (hashtag) params.hashtag = hashtag;
 
-      const response = await webscrapingInstance.get("/api/pinterest/", {
+      const response = await webscrapingInstance.get("/pinterest/", {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("Pinterest trending pins error:", error);
+      throw error;
+    }
+  },
+
+  // Get Reddit trending posts
+  getRedditTrending: async (query = "popular") => {
+    try {
+      const params = {};
+      if (query && query !== "popular") params.query = query;
+
+      const url = import.meta.env.DEV
+        ? "/api/webscraping/reddit/"
+        : "/api/reddit/";
+
+      const response = await webscrapingInstance.get(url, {
+        params,
+      });
+      return response;
+    } catch (error) {
+      console.error("Reddit trending posts error:", error);
+      throw error;
+    }
+  },
+
+  // Get Pinterest trending pins
+  getPinterestTrending: async (topic = "", hashtag = "") => {
+    try {
+      const params = {};
+      if (topic) params.topic = topic;
+      if (hashtag) params.hashtag = hashtag;
+
+      const url = import.meta.env.DEV
+        ? "/api/webscraping/pinterest/"
+        : "/api/pinterest/";
+
+      const response = await webscrapingInstance.get(url, {
         params,
       });
       return response;
@@ -446,13 +490,26 @@ const SummaryApi = {
   // Keep alive function for Django backend
   keepWebscrapingAlive: async () => {
     try {
-      const response = await webscrapingInstance.get("/api/health/");
+      const response = await webscrapingInstance.get("/health/");
       console.log("Django webscraping backend keep-alive successful");
       return response;
     } catch (error) {
       console.error("Django webscraping backend keep-alive failed:", error);
       return null;
     }
+  },
+
+  // Aliases for backward compatibility
+  scrapeYouTube: async (query = "trending") => {
+    return await SummaryApi.getYoutubeTrending(query);
+  },
+
+  scrapeReddit: async (query = "popular") => {
+    return await SummaryApi.getRedditTrending(query);
+  },
+
+  scrapePinterest: async (query = "viral") => {
+    return await SummaryApi.getPinterestTrending(query);
   },
 };
 

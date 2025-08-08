@@ -24,6 +24,19 @@ export default defineConfig(({ mode }) => {
         "Cross-Origin-Opener-Policy": "unsafe-none",
         "Cross-Origin-Embedder-Policy": "unsafe-none",
       },
+      // Add proxy for Django webscraping backend to avoid CORS issues
+      proxy: {
+        // Proxy Django webscraping API
+        "/api/webscraping": {
+          target: "https://backend-webscraping-apis.onrender.com",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/webscraping/, "/api"),
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        },
+      },
       // NOTE: Proxy disabled to use production backend even in development
       // Uncomment the proxy section below if you need to use local backend
       /*
