@@ -12,6 +12,8 @@ export default function GoogleLoginButton() {
     const urlParams = new URLSearchParams(location.search);
     const code = urlParams.get("code");
     const state = urlParams.get("state");
+    const token = urlParams.get("token");
+    const user = urlParams.get("user");
     const error = urlParams.get("error");
 
     if (error) {
@@ -22,10 +24,49 @@ export default function GoogleLoginButton() {
       return;
     }
 
+    // Handle token-based callback (from our backend)
+    if (token) {
+      handleTokenCallback(token, user);
+      return;
+    }
+
+    // Handle standard OAuth callback with code
     if (code) {
       handleGoogleCallback(code, state);
     }
   }, [location.search, navigate, handleOAuthCallback]);
+
+  // Handle token-based callback from backend
+  const handleTokenCallback = async (token, userString) => {
+    try {
+      // Store the token
+      localStorage.setItem("access_token", token);
+
+      // Parse user data if provided
+      if (userString) {
+        const userData = JSON.parse(decodeURIComponent(userString));
+        // You could store user data in your auth store here
+        console.log("User data from OAuth:", userData);
+      }
+
+      // Clear the token from URL
+      window.history.replaceState({}, document.title, location.pathname);
+
+      // Redirect to the intended page
+      const from = location.state?.from?.pathname || "/generate";
+      navigate(from);
+
+      // Trigger auth store to update user state
+      window.location.reload(); // Simple way to refresh auth state
+    } catch (error) {
+      console.error("Token callback failed:", error);
+      navigate("/login", {
+        state: {
+          error: "Failed to complete Google login. Please try again.",
+        },
+      });
+    }
+  };
 
   // Handle the OAuth callback
   const handleGoogleCallback = async (code, state) => {

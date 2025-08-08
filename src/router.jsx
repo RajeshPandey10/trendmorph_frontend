@@ -11,6 +11,7 @@ const VideosPage = lazy(() => import("./pages/VideosPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const DebugPage = lazy(() => import("./pages/DebugPage"));
 const MainLayout = lazy(() => import("./layouts/MainLayout"));
 
 // Error component for router errors
@@ -119,6 +120,22 @@ const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <VideosPage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "debug",
+        element: (
+          <LazyWrapper>
+            <DebugPage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "debug",
+        element: (
+          <LazyWrapper>
+            <DebugPage />
           </LazyWrapper>
         ),
       },
