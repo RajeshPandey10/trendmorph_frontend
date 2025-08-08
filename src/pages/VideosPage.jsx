@@ -1,18 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TrendingVideos from "../features/videos/TrendingVideos";
 import { useNicheStore } from "../store/nicheStore";
 import { useNavigate } from "react-router-dom";
+import SummaryApi from "../api/SummaryApi";
 
 export default function VideosPage() {
   const { selectedNiche } = useNicheStore();
   const navigate = useNavigate();
-  const [selectedPlatform, setSelectedPlatform] = useState("youtube");
+  const [selectedPlatform, setSelectedPlatform] = useState("all");
+  const [availablePlatforms, setAvailablePlatforms] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const platforms = [
-    { id: "youtube", name: "YouTube", icon: "📹", color: "red" },
-    { id: "reddit", name: "Reddit", icon: "🔴", color: "orange" },
-    { id: "pinterest", name: "Pinterest", icon: "📌", color: "red" },
-  ];
+  useEffect(() => {
+    fetchAvailablePlatforms();
+  }, []);
+
+  const fetchAvailablePlatforms = async () => {
+    setLoading(true);
+    try {
+      // Always show all platforms, but test which ones are working
+      const platforms = [
+        { id: "all", name: "All Platforms", icon: "🌐", color: "primary" },
+        { id: "youtube", name: "YouTube", icon: "📹", color: "red" },
+        { id: "reddit", name: "Reddit", icon: "🔴", color: "orange" },
+        { id: "pinterest", name: "Pinterest", icon: "�", color: "red" },
+      ];
+
+      // Test API endpoints in background (non-blocking)
+      Promise.allSettled([
+        SummaryApi.getYoutubeTrending("trending"),
+        SummaryApi.getRedditPosts("popular"),
+        SummaryApi.getPinterestPins("trending"),
+      ]).then((results) => {
+        console.log("Platform availability:", {
+          youtube: results[0].status === "fulfilled",
+          reddit: results[1].status === "fulfilled",
+          pinterest: results[2].status === "fulfilled",
+        });
+      });
+
+      setAvailablePlatforms(platforms);
+    } catch (error) {
+      console.error("Failed to fetch platforms:", error);
+      // Always show basic platforms even if there's an error
+      setAvailablePlatforms([
+        { id: "all", name: "All Platforms", icon: "🌐", color: "primary" },
+        { id: "youtube", name: "YouTube", icon: "📹", color: "red" },
+        { id: "reddit", name: "Reddit", icon: "🔴", color: "orange" },
+        { id: "pinterest", name: "Pinterest", icon: "📌", color: "red" },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen page-transition">
@@ -38,22 +78,28 @@ export default function VideosPage() {
             </h1>
 
             {/* Platform Selector */}
-            <div className="flex flex-wrap justify-center gap-3 mb-6">
-              {platforms.map((platform) => (
-                <button
-                  key={platform.id}
-                  onClick={() => setSelectedPlatform(platform.id)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                    selectedPlatform === platform.id
-                      ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary modern-shadow"
-                      : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
-                  }`}
-                >
-                  <span className="mr-2">{platform.icon}</span>
-                  {platform.name}
-                </button>
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center mb-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap justify-center gap-3 mb-6">
+                {availablePlatforms.map((platform) => (
+                  <button
+                    key={platform.id}
+                    onClick={() => setSelectedPlatform(platform.id)}
+                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                      selectedPlatform === platform.id
+                        ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary modern-shadow"
+                        : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <span className="mr-2">{platform.icon}</span>
+                    {platform.name}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {selectedNiche && (
               <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary/20 to-primary/10 text-primary rounded-xl font-semibold modern-shadow">
@@ -70,7 +116,10 @@ export default function VideosPage() {
 
         {/* Content Grid */}
         <div className="mb-12">
-          <TrendingVideos niche={selectedNiche} platform={selectedPlatform} />
+          <TrendingVideos
+            niche={selectedNiche?.name || selectedNiche}
+            platform={selectedPlatform}
+          />
         </div>
 
         {/* Call to Action */}

@@ -423,3 +423,38 @@
     transform: translateY(0);
   }
 }
+
+/* Theme toggle bar styling */
+.theme-toggle-bar {
+  background: hsl(var(--muted) / 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.theme-toggle-bar button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle-bar button:hover {
+  transform: translateY(-1px);
+}
+
+.theme-toggle-bar button.active {
+  background: hsl(var(--background));
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1), 
+              0 1px 3px hsl(var(--foreground) / 0.05);
+}
+
+/* Mobile sidebar backdrop animation */
+.sidebar-backdrop {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
