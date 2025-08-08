@@ -1,4 +1,4 @@
-// NicheCard.jsx - shadcn/ui styled card for niche selection
+// NicheCard.jsx - Modern styled card for niche selection
 export default function NicheCard({
   icon,
   title,
@@ -8,29 +8,31 @@ export default function NicheCard({
 }) {
   return (
     <button
-      className={`group relative flex flex-col items-center justify-center border rounded-xl p-6 shadow-sm transition-all duration-200 
-        bg-card hover:bg-card/80 hover:shadow-lg focus:ring-2 focus:ring-primary/50 outline-none w-40 h-40 m-2
-        dark:bg-card dark:hover:bg-card/90 dark:border-border
+      className={`group relative flex flex-col items-center justify-center rounded-xl p-4 sm:p-6 transition-all duration-300 
+        w-full sm:w-40 h-32 sm:h-40 m-1 sm:m-2 modern-button modern-focus float-element
         ${
           selected
-            ? "border-primary ring-2 ring-primary/40 bg-primary/5 dark:bg-primary/10"
-            : "border-border hover:border-primary/30"
+            ? "glass-effect border-primary ring-2 ring-primary/40 bg-primary/10 dark:bg-primary/15 modern-shadow-lg glow-border"
+            : "glass-effect border-border/50 hover:border-primary/50 modern-shadow hover:modern-shadow-lg"
         }`}
       onClick={onClick}
       aria-pressed={selected}
+      style={{
+        animationDelay: `${Math.random() * 2}s`,
+      }}
     >
-      <span className="text-4xl mb-2 group-hover:scale-110 transition-transform duration-200">
+      <span className="text-2xl sm:text-4xl mb-1 sm:mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 filter group-hover:drop-shadow-lg">
         {icon}
       </span>
-      <span className="font-semibold text-lg mb-1 text-card-foreground dark:text-foreground">
+      <span className="font-semibold text-sm sm:text-lg mb-0.5 sm:mb-1 text-card-foreground dark:text-foreground group-hover:text-primary transition-colors duration-300">
         {title}
       </span>
-      <span className="text-xs text-muted-foreground text-center leading-tight">
+      <span className="text-xs text-muted-foreground text-center leading-tight group-hover:text-foreground/80 transition-colors duration-300 hidden sm:block">
         {description}
       </span>
       {selected && (
-        <span className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs font-medium shadow-sm">
-          Selected
+        <span className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 sm:px-2 text-xs font-medium shadow-sm">
+          ✓
         </span>
       )}
     </button>

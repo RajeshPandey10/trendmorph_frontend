@@ -96,17 +96,25 @@ export default function HistoryPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="text-center p-8 bg-white rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold mb-4">Login Required</h2>
-          <p className="text-gray-600 mb-6">
-            Please log in to view your chat history.
+      <div className="flex flex-col items-center justify-center min-h-[60vh] page-transition">
+        <div className="glass-effect p-12 rounded-2xl modern-shadow-lg glow-border text-center max-w-md">
+          <div className="mb-6">
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-primary/20 to-ring/20 flex items-center justify-center modern-shadow">
+              <span className="text-4xl">🔐</span>
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent">
+            Login Required
+          </h2>
+          <p className="text-muted-foreground mb-8 leading-relaxed">
+            Please log in to view your chat history and continue your
+            conversations.
           </p>
           <button
             onClick={() => navigate("/login")}
-            className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+            className="modern-button px-8 py-4 bg-gradient-to-r from-primary to-ring text-primary-foreground rounded-xl font-semibold modern-shadow hover:modern-shadow-lg transform hover:scale-105 transition-all duration-300"
           >
-            Login
+            Login Now
           </button>
         </div>
       </div>
@@ -119,13 +127,18 @@ export default function HistoryPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="text-center p-8 bg-white rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold mb-4 text-red-600">Error</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] page-transition">
+        <div className="glass-effect p-12 rounded-2xl modern-shadow-lg text-center max-w-md">
+          <div className="mb-6">
+            <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-destructive/20 to-destructive/10 flex items-center justify-center modern-shadow">
+              <span className="text-4xl">⚠️</span>
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold mb-4 text-destructive">Error</h2>
+          <p className="text-muted-foreground mb-8 leading-relaxed">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
+            className="modern-button px-8 py-4 bg-gradient-to-r from-primary to-ring text-primary-foreground rounded-xl font-semibold modern-shadow hover:modern-shadow-lg transform hover:scale-105 transition-all duration-300"
           >
             Try Again
           </button>
@@ -135,74 +148,96 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Chat History</h1>
-        <p className="text-gray-600">
-          View and continue your previous conversations
-        </p>
+    <div className="max-w-4xl mx-auto px-4 py-8 page-transition">
+      {/* Header Section */}
+      <div className="mb-12 text-center">
+        <div className="glass-effect rounded-2xl p-8 modern-shadow-lg glow-border">
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-3 rounded-full bg-gradient-to-r from-primary/20 to-ring/20 modern-shadow">
+              <span className="text-4xl">💬</span>
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent mb-4">
+            Chat History
+          </h1>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            View and continue your previous AI conversations
+          </p>
+        </div>
       </div>
 
       {history.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-          <div className="text-6xl mb-4">💬</div>
-          <h3 className="text-xl font-semibold mb-2">No Chats Yet</h3>
-          <p className="text-gray-600 mb-6">
-            Start a new chat to see your history here
-          </p>
-          <button
-            onClick={() => navigate("/generate")}
-            className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-          >
-            Start New Chat
-          </button>
+        <div className="text-center py-16">
+          <div className="glass-effect rounded-2xl p-12 modern-shadow-lg max-w-lg mx-auto">
+            <div className="mb-8">
+              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-primary/20 to-ring/20 flex items-center justify-center modern-shadow float-element">
+                <span className="text-6xl">�</span>
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent">
+              No Chats Yet
+            </h3>
+            <p className="text-muted-foreground mb-8 leading-relaxed">
+              Start your first AI conversation to see your history here
+            </p>
+            <button
+              onClick={() => navigate("/generate")}
+              className="modern-button px-8 py-4 bg-gradient-to-r from-primary to-ring text-primary-foreground rounded-xl font-semibold modern-shadow hover:modern-shadow-lg transform hover:scale-105 transition-all duration-300"
+            >
+              Start New Chat
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {history.map((chat) => (
+        <div className="grid gap-6">
+          {history.map((chat, index) => (
             <div
               key={chat.id}
-              className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
+              className="glass-effect rounded-2xl modern-shadow hover:modern-shadow-lg transition-all duration-300 overflow-hidden modern-button glow-border float-element"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <button
                 onClick={() => handleChatClick(chat)}
-                className="w-full text-left p-6"
+                className="w-full text-left p-8"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900 truncate">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-foreground truncate pr-4 group-hover:text-primary transition-colors">
                     {chat.title}
                   </h3>
-                  <span className="text-sm text-gray-500">
-                    {new Date(chat.created_at).toLocaleDateString()}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-sm text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+                      {new Date(chat.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-3 mb-4">
                   {chat.niche && (
-                    <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-md text-sm">
-                      {chat.niche}
+                    <span className="px-3 py-2 bg-gradient-to-r from-primary/20 to-primary/10 text-primary rounded-xl text-sm font-medium modern-shadow">
+                      🎯 {chat.niche}
                     </span>
                   )}
                   {chat.platform && (
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm">
-                      {chat.platform}
+                    <span className="px-3 py-2 bg-gradient-to-r from-blue-500/20 to-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl text-sm font-medium modern-shadow">
+                      📱 {chat.platform}
                     </span>
                   )}
-                  <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-sm">
-                    {chat.messageCount} messages
+                  <span className="px-3 py-2 bg-gradient-to-r from-muted/50 to-muted/30 text-muted-foreground rounded-xl text-sm font-medium modern-shadow">
+                    💬 {chat.messageCount} messages
                   </span>
                 </div>
 
-                <p className="text-gray-600 text-sm line-clamp-2">
+                <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed bg-muted/20 rounded-lg p-3">
                   {chat.preview}
                 </p>
               </button>
 
-              <div className="px-6 py-3 border-t flex justify-between items-center">
+              <div className="px-8 py-4 border-t border-border/50 flex justify-between items-center bg-muted/10">
                 <button
                   onClick={() => handleChatClick(chat)}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  className="text-primary hover:text-primary/80 text-sm font-semibold flex items-center gap-2 transition-colors"
                 >
+                  <span>➤</span>
                   Continue Chat
                 </button>
                 <button
@@ -210,8 +245,9 @@ export default function HistoryPage() {
                     e.stopPropagation();
                     handleDelete(chat.id);
                   }}
-                  className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  className="text-destructive hover:text-destructive/80 text-sm font-semibold flex items-center gap-2 transition-colors"
                 >
+                  <span>🗑️</span>
                   Delete
                 </button>
               </div>

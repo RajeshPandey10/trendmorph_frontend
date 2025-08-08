@@ -35,7 +35,7 @@ export default function Sidebar({ open, onClose }) {
     <aside
       className={`fixed z-40 top-0 left-0 h-screen w-64 bg-card border-r border-border shadow-xl transition-transform duration-300 transform flex flex-col ${
         open ? "translate-x-0" : "-translate-x-full"
-      } md:translate-x-0 md:sticky md:top-0`}
+      } md:translate-x-0 md:sticky md:top-0 md:bg-card/95 md:backdrop-blur md:supports-[backdrop-filter]:bg-card/60`}
     >
       <div className="flex items-center justify-between px-6 py-5 border-b border-border bg-card flex-shrink-0">
         <div className="flex items-center gap-3">

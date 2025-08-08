@@ -13,7 +13,7 @@ export default function MainLayout() {
     <div className="min-h-screen bg-background text-foreground flex">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-h-screen md:ml-0">
-        <header className="bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-b border-border sticky top-0 z-20 md:hidden">
+        <header className="bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 border-b border-border sticky top-0 z-30 md:hidden">
           <div className="flex items-center justify-between py-4 px-4 md:px-8">
             <Button
               variant="ghost"
