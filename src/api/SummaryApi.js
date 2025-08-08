@@ -1,22 +1,26 @@
 import axios from "axios";
 
 const backendDomain =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://trendmorph-ai-backend.onrender.com";
 
-// Image Caption API Domain
-const imageCaptionDomain = "http://127.0.0.1:5000";
+// Force production backend URL for OAuth
+const PRODUCTION_BACKEND = "https://trendmorph-ai-backend.onrender.com";
 
-// Validate Google Client ID
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-if (!GOOGLE_CLIENT_ID) {
-  console.error(
-    "Google Client ID is not configured. Please set VITE_GOOGLE_CLIENT_ID in your .env file"
-  );
-}
+// Debug logging for environment
+console.log("Frontend Environment Check:");
+console.log("VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL);
+console.log("Backend Domain:", backendDomain);
+console.log("Production Backend:", PRODUCTION_BACKEND);
+console.log("OAuth URL will be:", `${PRODUCTION_BACKEND}/api/auth/google`);
 
-// Create axios instance with base configuration
+// Image Caption API Domain (Keep local)
+const imageCaptionDomain =
+  import.meta.env.VITE_IMAGE_CAPTION_API || "http://127.0.0.1:5000";
+
+// Create axios instance with base configuration - use production backend
 const axiosInstance = axios.create({
-  baseURL: backendDomain,
+  baseURL: PRODUCTION_BACKEND, // Always use production backend
   withCredentials: true,
   timeout: 30000, // 30 second timeout
   headers: {
@@ -33,19 +37,19 @@ const imageCaptionInstance = axios.create({
   },
 });
 
-// Add token to requests automatically (commented out for now as authentication is disabled)
+// Add token to requests automatically
 axiosInstance.interceptors.request.use(
   (config) => {
-    // const token = localStorage.getItem("access_token");
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Add response interceptor to handle token refresh (disabled for now)
+// Add response interceptor to handle token refresh
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -61,38 +65,47 @@ axiosInstance.interceptors.response.use(
       });
     }
 
-    // Handle 401 unauthorized errors with token refresh (disabled)
-    // if (error.response?.status === 401 && !originalRequest._retry) {
-    //   originalRequest._retry = true;
+    // Handle 401 unauthorized errors with token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
 
-    //   const refreshToken = localStorage.getItem("refresh_token");
-    //   if (refreshToken) {
-    //     try {
-    //       const response = await axios.post(
-    //         `${backendDomain}/api/users/token/refresh/`,
-    //         {
-    //           refresh: refreshToken,
-    //         }
-    //       );
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (refreshToken) {
+        try {
+          const response = await axios.post(
+            `${PRODUCTION_BACKEND}/api/auth/token/refresh/`,
+            {
+              refresh: refreshToken,
+            }
+          );
 
-    //       const newToken = response.data.access;
-    //       localStorage.setItem("access_token", newToken);
-    //       originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          const newToken = response.data.access;
+          localStorage.setItem("access_token", newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
-    //       return axiosInstance(originalRequest);
-    //     } catch (refreshError) {
-    //       // Refresh failed, clear tokens and redirect to login
-    //       localStorage.removeItem("access_token");
-    //       localStorage.removeItem("refresh_token");
+          return axiosInstance(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and redirect to login
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
 
-    //       // Only redirect if we're not already on login page
-    //       if (!window.location.pathname.includes("/login")) {
-    //         window.location.href = "/login";
-    //       }
-    //       return Promise.reject(refreshError);
-    //     }
-    //   }
-    // }
+          // Only redirect if we're not already on login page
+          if (!window.location.pathname.includes("/login")) {
+            window.location.href = "/login";
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
+        // No refresh token, redirect to login
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+
+        if (!window.location.pathname.includes("/login")) {
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+    }
 
     // Handle specific error statuses
     if (error.response?.status === 404) {
@@ -113,68 +126,35 @@ const SummaryApi = {
   // Health check
   healthCheck: () =>
     axiosInstance
-      .get("/api/health/")
+      .get("/health")
       .catch(() => ({ data: { status: "Backend unavailable" } })),
 
   // User Authentication
-  register: (data) => axiosInstance.post("/api/users/register/", data),
-  login: (data) => axiosInstance.post("/api/users/login/", data),
-  refresh: (data) => axiosInstance.post("/api/users/token/refresh/", data),
+  register: (data) => axiosInstance.post("/api/auth/register", data),
+  login: (data) => axiosInstance.post("/api/auth/login", data),
+  refresh: (data) => axiosInstance.post("/api/auth/token/refresh", data),
   logout: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
-    return axiosInstance.post("/api/users/logout/");
+    return axiosInstance.post("/api/auth/logout");
   },
-  profile: () => axiosInstance.get("/api/users/profile/"),
+  profile: () => axiosInstance.get("/api/auth/profile"),
 
-  // Google OAuth with Django social auth endpoints
+  // Google OAuth - Always use production backend for OAuth
   initiateGoogleLogin: () => {
-    if (!GOOGLE_CLIENT_ID) {
-      throw new Error(
-        "Google Client ID is not configured. Please check your environment variables."
-      );
-    }
-
-    // Use the correct Django social auth endpoint
-    const redirectUri = `${backendDomain}/auth/social/google/login/callback/`;
-
-    // Log configuration for debugging
-    console.log("OAuth Configuration:", {
-      clientId: GOOGLE_CLIENT_ID,
-      redirectUri,
-      backendDomain,
-    });
-
-    // Build OAuth URL with required parameters
-    const params = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: redirectUri,
-      response_type: "code",
-      scope: "email profile",
-      access_type: "offline",
-      prompt: "consent",
-    });
-
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-    console.log("Redirecting to:", googleAuthUrl);
-    window.location.href = googleAuthUrl;
+    // Always use production backend for OAuth to avoid CORS issues
+    const googleUrl = `${PRODUCTION_BACKEND}/api/auth/google`;
+    console.log("Initiating Google Login to:", googleUrl);
+    window.location.href = googleUrl;
   },
 
-  // Handle Google OAuth callback
-  handleGoogleCallback: async (code) => {
-    if (!code) {
-      throw new Error("Authorization code is required");
-    }
-
+  // Handle Google OAuth callback (called by backend redirect)
+  handleGoogleCallback: async (code, state) => {
     try {
-      // Exchange code for tokens using Django social auth endpoint
-      const response = await axiosInstance.post(
-        "/auth/social/google/login/callback/",
-        {
-          code,
-          state: localStorage.getItem("oauth_state"),
-        }
-      );
+      const response = await axiosInstance.post("/api/auth/google/callback", {
+        code,
+        state,
+      });
 
       // Handle successful login
       if (response.data.access_token) {
@@ -190,6 +170,12 @@ const SummaryApi = {
       throw error;
     }
   },
+
+  // Get current user session
+  getSession: () => axiosInstance.get("/api/auth/session"),
+
+  // Verify token
+  verifyToken: (token) => axiosInstance.post("/api/auth/verify", { token }),
 
   // Trending Content
   getTrendingPosts: (params) => axiosInstance.get("/api/trends/", { params }),
@@ -248,14 +234,14 @@ const SummaryApi = {
     }
   },
 
-  // Chat Sessions
-  getChatSessions: () => axiosInstance.get("/api/trends/chat/sessions/"),
+  // Chat Sessions (Protected routes)
+  getChatSessions: () => axiosInstance.get("/api/chat/sessions"),
 
   getSessionMessages: (sessionId) =>
-    axiosInstance.get(`/api/trends/chat/sessions/${sessionId}/messages/`),
+    axiosInstance.get(`/api/chat/sessions/${sessionId}/messages`),
 
   createChatSession: (data) =>
-    axiosInstance.post("/api/trends/chat/sessions/", {
+    axiosInstance.post("/api/chat/sessions", {
       title: data.title,
       niche: data.niche,
       platform: data.platform,
@@ -268,23 +254,23 @@ const SummaryApi = {
 
   // Post a message to a session - Updated to match backend format
   createSessionMessage: (sessionId, data) =>
-    axiosInstance.post(`/api/trends/chat/sessions/${sessionId}/messages/`, {
+    axiosInstance.post(`/api/chat/sessions/${sessionId}/messages`, {
       query: data.role === "user" ? data.content : "",
       response: data.role === "assistant" ? data.content : "",
       role: data.role,
     }),
 
   deleteChatSession: (sessionId) =>
-    axiosInstance.delete(`/api/trends/chat/sessions/${sessionId}/`),
+    axiosInstance.delete(`/api/chat/sessions/${sessionId}`),
 
-  // Legacy History endpoints with message format handling
+  // History endpoints (Protected routes)
   getHistory: (sessionId) =>
-    axiosInstance.get("/api/trends/history/", {
+    axiosInstance.get("/api/history", {
       params: sessionId ? { session: sessionId } : undefined,
     }),
 
   deleteHistoryMessage: (messageId) =>
-    axiosInstance.delete(`/api/trends/history/${messageId}/`),
+    axiosInstance.delete(`/api/history/${messageId}`),
 
   // Helper method to normalize message data from different endpoints
   normalizeMessages: (data) => {

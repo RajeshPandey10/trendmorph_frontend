@@ -12,6 +12,7 @@ import {
   LogOut,
   LogIn,
   UserPlus,
+  Bug,
 } from "lucide-react";
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { label: "Generate", to: "/generate", icon: Sparkles, protected: true },
   { label: "History", to: "/history", icon: FileText, protected: true },
   { label: "Videos", to: "/videos", icon: Video, protected: false },
+  { label: "Debug", to: "/debug", icon: Bug, protected: false, dev: true },
 ];
 
 export default function Sidebar({ open, onClose }) {
@@ -62,6 +64,9 @@ export default function Sidebar({ open, onClose }) {
         {navItems.map((item) => {
           // Hide protected items if not authenticated
           if (item.protected && !isAuthenticated) return null;
+
+          // Hide dev items in production
+          if (item.dev && import.meta.env.PROD) return null;
 
           const IconComponent = item.icon;
 

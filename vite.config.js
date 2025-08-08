@@ -4,28 +4,42 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
   // Load env file
-  process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
+  const env = loadEnv(mode, process.cwd());
+  process.env = { ...process.env, ...env };
+
+  // Get the API base URL from environment
+  const apiBaseUrl =
+    env.VITE_API_BASE_URL || "https://trendmorph-ai-backend.onrender.com";
+  console.log(`Vite Config - Mode: ${mode}, API Base URL: ${apiBaseUrl}`);
+
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      // Explicitly define environment variables
+      "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBaseUrl),
+    },
     server: {
-      
       headers: {
         // Allow cross-domain popups to communicate via postMessage
         "Cross-Origin-Opener-Policy": "unsafe-none",
         "Cross-Origin-Embedder-Policy": "unsafe-none",
       },
+      // NOTE: Proxy disabled to use production backend even in development
+      // Uncomment the proxy section below if you need to use local backend
+      /*
       proxy: {
         "/api": {
-          target: "http://localhost:8000",
+          target: "http://localhost:8000", // Local backend for development only
           changeOrigin: true,
           secure: false,
         },
         "/auth": {
-          target: "http://localhost:8000",
+          target: "http://localhost:8000", // Local backend for development only
           changeOrigin: true,
           secure: false,
         },
       },
+      */
     },
   };
 });
