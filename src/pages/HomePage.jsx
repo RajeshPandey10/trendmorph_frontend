@@ -1,6 +1,8 @@
 import { useNicheStore } from "../store/nicheStore";
 import NicheSelector from "../features/niche/NicheSelector";
 import TrendingVideos from "../features/videos/TrendingVideos";
+import VoiceAIBanner from "../components/ui/VoiceAIBanner";
+import VoiceAIModal from "../components/ui/VoiceAIModal";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -8,6 +10,7 @@ export default function HomePage() {
   const { selectedNiche, setNiche } = useNicheStore();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(false);
+  const [showVoiceAIModal, setShowVoiceAIModal] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -27,6 +30,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen page-transition">
       <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+        {/* Voice AI Product Banner */}
+        <VoiceAIBanner onOpenModal={() => setShowVoiceAIModal(true)} />
+
         {/* Header Section */}
         <div className="text-center mb-8 sm:mb-12">
           <div className="sm:backdrop-blur-sm sm:bg-transparent sm:border sm:border-primary/20 sm:rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto">
@@ -108,6 +114,12 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Voice AI Modal */}
+      <VoiceAIModal
+        isOpen={showVoiceAIModal}
+        onClose={() => setShowVoiceAIModal(false)}
+      />
     </div>
   );
 }

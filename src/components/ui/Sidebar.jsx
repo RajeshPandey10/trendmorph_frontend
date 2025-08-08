@@ -12,7 +12,8 @@ import {
   LogOut,
   LogIn,
   UserPlus,
-  Bug,
+  Mic,
+  ExternalLink,
 } from "lucide-react";
 
 const navItems = [
@@ -20,7 +21,6 @@ const navItems = [
   { label: "Generate", to: "/generate", icon: Sparkles, protected: true },
   { label: "History", to: "/history", icon: FileText, protected: true },
   { label: "Videos", to: "/videos", icon: Video, protected: false },
-  { label: "Debug", to: "/debug", icon: Bug, protected: false, dev: true },
 ];
 
 export default function Sidebar({ open, onClose }) {
@@ -46,7 +46,7 @@ export default function Sidebar({ open, onClose }) {
             TrendMorphAI
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <ThemeToggle className="md:flex hidden" />
           <Button
             variant="ghost"
@@ -57,7 +57,7 @@ export default function Sidebar({ open, onClose }) {
           >
             ✖️
           </Button>
-        </div>
+        </div> */}
       </div>
 
       <nav className="flex flex-col gap-2 mt-6 px-4 flex-1 overflow-y-auto">
@@ -87,6 +87,42 @@ export default function Sidebar({ open, onClose }) {
           );
         })}
       </nav>
+
+      {/* Voice AI Product Promotion */}
+      <div className="px-4 py-4 border-t border-border/50">
+        <div className="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 rounded-lg p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-primary/20 rounded-md">
+              <Mic className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-foreground">
+                Voice AI Generator
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Our premium product
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Generate professional content for Nepali businesses in seconds
+          </p>
+          <Button
+            onClick={() => {
+              window.open(
+                "https://voice-ai-content-generator-frontend.vercel.app/",
+                "_blank"
+              );
+              onClose();
+            }}
+            size="sm"
+            className="w-full gap-2 text-xs"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Try Voice AI
+          </Button>
+        </div>
+      </div>
 
       <div className="mt-auto px-4 py-6 border-t border-border flex-shrink-0 space-y-4">
         <div className="md:hidden flex justify-center">
