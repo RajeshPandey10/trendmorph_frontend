@@ -48,7 +48,9 @@ export default function MainLayout() {
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <User className="w-4 h-4" />
-                      <span>{user?.username || "User"}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {user?.username || user?.email?.split("@")[0] || "User"}
+                      </span>
                     </div>
                     <Button
                       onClick={handleLogout}

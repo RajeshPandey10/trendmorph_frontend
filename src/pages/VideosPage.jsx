@@ -1,3 +1,4 @@
+import { useState } from "react";
 import TrendingVideos from "../features/videos/TrendingVideos";
 import { useNicheStore } from "../store/nicheStore";
 import { useNavigate } from "react-router-dom";
@@ -5,6 +6,13 @@ import { useNavigate } from "react-router-dom";
 export default function VideosPage() {
   const { selectedNiche } = useNicheStore();
   const navigate = useNavigate();
+  const [selectedPlatform, setSelectedPlatform] = useState("youtube");
+
+  const platforms = [
+    { id: "youtube", name: "YouTube", icon: "📹", color: "red" },
+    { id: "reddit", name: "Reddit", icon: "🔴", color: "orange" },
+    { id: "pinterest", name: "Pinterest", icon: "📌", color: "red" },
+  ];
 
   return (
     <div className="min-h-screen page-transition">
@@ -26,8 +34,27 @@ export default function VideosPage() {
               </div>
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-ring bg-clip-text text-transparent mb-4">
-              Trending Videos
+              Trending Content
             </h1>
+
+            {/* Platform Selector */}
+            <div className="flex flex-wrap justify-center gap-3 mb-6">
+              {platforms.map((platform) => (
+                <button
+                  key={platform.id}
+                  onClick={() => setSelectedPlatform(platform.id)}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                    selectedPlatform === platform.id
+                      ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary modern-shadow"
+                      : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="mr-2">{platform.icon}</span>
+                  {platform.name}
+                </button>
+              ))}
+            </div>
+
             {selectedNiche && (
               <div className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary/20 to-primary/10 text-primary rounded-xl font-semibold modern-shadow">
                 <span>🎯</span>
@@ -35,14 +62,15 @@ export default function VideosPage() {
               </div>
             )}
             <p className="text-lg text-muted-foreground mt-4 leading-relaxed">
-              Discover what's trending and get inspired for your next content
+              Discover what's trending across platforms and get inspired for
+              your next content
             </p>
           </div>
         </div>
 
-        {/* Videos Grid */}
+        {/* Content Grid */}
         <div className="mb-12">
-          <TrendingVideos niche={selectedNiche} />
+          <TrendingVideos niche={selectedNiche} platform={selectedPlatform} />
         </div>
 
         {/* Call to Action */}

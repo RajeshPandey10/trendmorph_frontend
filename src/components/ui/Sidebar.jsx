@@ -133,8 +133,8 @@ export default function Sidebar({ open, onClose }) {
           <div className="space-y-3">
             <div className="text-sm text-muted-foreground px-2">
               Welcome,{" "}
-              <span className="font-medium text-foreground">
-                {user?.username || "User"}
+              <span className="font-medium text-gray-900 dark:text-white">
+                {user?.username || user?.email?.split("@")[0] || "User"}
               </span>
               !
             </div>
