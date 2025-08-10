@@ -6,22 +6,46 @@ import SummaryApi from "../../api/SummaryApi";
 
 // Category mapping for different platforms - comprehensive mapping for all categories
 const CATEGORY_MAPPING = {
-  // Core categories
-  Music: { youtube: "music", reddit: "music", pinterest: "music" },
-  Sports: { youtube: "sports", reddit: "sports", pinterest: "sports" },
+  // Core categories with enhanced queries
+  Music: { youtube: "music songs", reddit: "music", pinterest: "music" },
+  Sports: {
+    youtube: "sports highlights",
+    reddit: "sports",
+    pinterest: "sports",
+  },
   Entertainment: {
-    youtube: "entertainment",
+    youtube: "entertainment shows",
     reddit: "entertainment",
     pinterest: "entertainment",
   },
-  News: { youtube: "news", reddit: "news", pinterest: "news" },
-  Fashion: { youtube: "fashion", reddit: "fashion", pinterest: "fashion" },
-  Gaming: { youtube: "gaming", reddit: "gaming", pinterest: "gaming" },
-  Tech: { youtube: "tech", reddit: "technology", pinterest: "tech" },
-  Food: { youtube: "food", reddit: "food", pinterest: "food" },
-  Travel: { youtube: "travel", reddit: "travel", pinterest: "travel" },
-  Fitness: { youtube: "fitness", reddit: "fitness", pinterest: "fitness" },
-  Business: { youtube: "business", reddit: "business", pinterest: "business" },
+  News: { youtube: "news latest", reddit: "news", pinterest: "news" },
+  Fashion: {
+    youtube: "fashion style",
+    reddit: "fashion",
+    pinterest: "fashion",
+  },
+  Gaming: { youtube: "gaming gameplay", reddit: "gaming", pinterest: "gaming" },
+  Tech: {
+    youtube: "technology review",
+    reddit: "technology",
+    pinterest: "tech",
+  },
+  Food: { youtube: "food cooking", reddit: "food", pinterest: "recipes" },
+  Travel: {
+    youtube: "travel destinations",
+    reddit: "travel",
+    pinterest: "travel",
+  },
+  Fitness: {
+    youtube: "fitness workout",
+    reddit: "fitness",
+    pinterest: "fitness",
+  },
+  Business: {
+    youtube: "business entrepreneurship",
+    reddit: "business",
+    pinterest: "business",
+  },
 
   // Additional comprehensive categories
   Trending: { youtube: "trending", reddit: "popular", pinterest: "trending" },
@@ -112,13 +136,17 @@ export default function TrendingVideos({ niche, platform = "all" }) {
     setTimeout(() => {
       if (videosRef.current) {
         const isMobile = window.innerWidth < 768;
-        videosRef.current.scrollIntoView({
+
+        // Calculate a more precise scroll position
+        const rect = videosRef.current.getBoundingClientRect();
+        const scrollTop = window.pageYOffset + rect.top - (isMobile ? 80 : 120);
+
+        window.scrollTo({
+          top: Math.max(0, scrollTop), // Ensure we don't scroll to negative position
           behavior: "smooth",
-          block: isMobile ? "center" : "start", // Better mobile positioning
-          inline: "nearest",
         });
       }
-    }, 300); // Increased delay for better UX
+    }, 400); // Longer delay to ensure content has loaded
   };
 
   // Remove duplicates based on URL and title
@@ -199,52 +227,92 @@ export default function TrendingVideos({ niche, platform = "all" }) {
         `🗂️ After removing duplicates: ${uniqueVideos.length} videos`
       );
 
-      // Enhanced filtering for better category relevance
+      // Enhanced filtering for better category relevance - MUCH STRICTER
       let filteredVideos = uniqueVideos;
 
       // Filter videos by selected niche/category for better relevance
       if (currentNiche && currentNiche.toLowerCase() !== "trending") {
+        const nicheKeywords = currentNiche.toLowerCase();
+        const nicheWords = nicheKeywords.split(" ");
+
+        // First pass: Strict filtering
         filteredVideos = uniqueVideos.filter((video) => {
-          const searchTerms = [
-            video.title?.toLowerCase() || "",
-            video.category?.toLowerCase() || "",
-            video.subreddit?.toLowerCase() || "",
-            video.topic?.toLowerCase() || "",
-            (video.hashtags || []).join(" ").toLowerCase(),
-          ];
+          const title = video.title?.toLowerCase() || "";
+          const category = video.category?.toLowerCase() || "";
+          const subreddit = video.subreddit?.toLowerCase() || "";
+          const topic = video.topic?.toLowerCase() || "";
+          const hashtags = (video.hashtags || []).join(" ").toLowerCase();
 
-          const nicheKeywords = currentNiche.toLowerCase();
-          const nicheWords = nicheKeywords.split(" ");
+          // Priority 1: Exact niche match in title or category
+          if (
+            title.includes(nicheKeywords) ||
+            category.includes(nicheKeywords)
+          ) {
+            return true;
+          }
 
-          // Check for exact matches and partial matches
-          return searchTerms.some((term) => {
-            return nicheWords.some(
-              (nicheWord) =>
-                term.includes(nicheWord) ||
-                nicheWord.includes(term.split(" ")[0])
-            );
-          });
+          // Priority 2: Niche words in title (at least 2 words for multi-word niches)
+          if (nicheWords.length > 1) {
+            const matchCount = nicheWords.filter((word) =>
+              title.includes(word)
+            ).length;
+            if (matchCount >= Math.min(2, nicheWords.length)) {
+              return true;
+            }
+          } else {
+            // Single word niche - must be in title, category, or be exact subreddit/topic match
+            if (
+              title.includes(nicheKeywords) ||
+              category === nicheKeywords ||
+              subreddit === nicheKeywords ||
+              topic === nicheKeywords
+            ) {
+              return true;
+            }
+          }
+
+          // Priority 3: Hashtag exact match
+          if (
+            hashtags.includes(`#${nicheKeywords}`) ||
+            hashtags.includes(nicheKeywords)
+          ) {
+            return true;
+          }
+
+          return false;
         });
 
         console.log(
-          `🔍 Filtered videos for ${currentNiche}: ${filteredVideos.length} out of ${uniqueVideos.length}`
+          `🔍 Strict filtered videos for ${currentNiche}: ${filteredVideos.length} out of ${uniqueVideos.length}`
         );
 
-        // If filtered results are too few, add some original results
-        if (filteredVideos.length < 4) {
-          const remaining = uniqueVideos.filter(
-            (v) => !filteredVideos.includes(v)
-          );
-          filteredVideos = [
-            ...filteredVideos,
-            ...remaining.slice(0, Math.max(8 - filteredVideos.length, 4)),
-          ];
+        // If we have very few results, try a slightly looser filter
+        if (filteredVideos.length < 3) {
+          console.log("📉 Too few results, trying looser filter...");
+
+          filteredVideos = uniqueVideos.filter((video) => {
+            const searchText = `${video.title} ${video.category} ${
+              video.subreddit
+            } ${video.topic} ${(video.hashtags || []).join(" ")}`.toLowerCase();
+
+            // At least one niche word must appear
+            return nicheWords.some(
+              (word) => word.length > 2 && searchText.includes(word)
+            );
+          });
+
           console.log(
-            `📈 Added ${Math.max(
-              8 - filteredVideos.length,
-              4
-            )} additional videos`
+            `🔍 Looser filter results: ${filteredVideos.length} videos`
           );
+        }
+
+        // If still too few, show only exact platform-specific results
+        if (filteredVideos.length < 2) {
+          console.log(
+            "📉 Still too few, showing only platform-specific results..."
+          );
+          // Don't add random videos - keep it empty if no relevant content
+          filteredVideos = [];
         }
       }
 

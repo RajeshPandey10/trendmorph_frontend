@@ -24,10 +24,19 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // Clear authentication
+  // Clear authentication and related stores
   clearAuth: () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+
+    // Clear niche store when logging out
+    try {
+      localStorage.removeItem("niche-store");
+      sessionStorage.removeItem("niche-store");
+    } catch (error) {
+      console.warn("Failed to clear niche store:", error);
+    }
+
     set({
       user: null,
       access: null,
