@@ -6,8 +6,6 @@ const CATEGORY_ICONS = {
   Entertainment: "🎬",
   News: "📰",
   Fashion: "👗",
-  Gaming: "🎮",
-  Tech: "💻",
   Food: "🍳",
   Travel: "✈️",
   Fitness: "💪",
@@ -72,6 +70,47 @@ const fetchAvailableCategories = async (setLoading, setCategories) => {
     const key = cat.trim();
     if (!key) return;
 
+    // 🔥 ENHANCED: Filter out unwanted categories and hashtags
+    const unwantedCategories = [
+      "cas",
+      "cigarettesaftersex",
+      "visitmunich",
+      "munichhotelsgermany",
+      "general",
+      "misc",
+      "miscellaneous",
+      "other",
+      "undefined",
+      "null",
+      // Filter out very specific location hashtags
+      "munich",
+      "germany",
+      
+    ];
+
+    // Check if the category should be filtered out
+    const keyLower = key.toLowerCase();
+    if (
+      unwantedCategories.some(
+        (unwanted) =>
+          keyLower === unwanted ||
+          keyLower.includes(unwanted) ||
+          unwanted.includes(keyLower)
+      )
+    ) {
+      return; // Skip unwanted categories
+    }
+
+    // Filter out categories that are too short (likely noise) or too long (likely specific content)
+    if (key.length < 3 || key.length > 15) {
+      return;
+    }
+
+    // Filter out categories that contain numbers (likely specific content IDs)
+    if (/\d/.test(key)) {
+      return;
+    }
+
     // Check for exact match or close match with predefined categories
     const matchedCategory = predefinedCategories.find(
       (predefined) =>
@@ -84,8 +123,19 @@ const fetchAvailableCategories = async (setLoading, setCategories) => {
       categoryCounts[matchedCategory] =
         (categoryCounts[matchedCategory] || 0) + 1;
     } else {
-      // Add new dynamic category if it doesn't match predefined ones
-      categoryCounts[key] = (categoryCounts[key] || 0) + 1;
+      // Only add dynamic categories if they pass quality checks
+      const isValidCategory =
+        key.length >= 4 &&
+        key.length <= 12 &&
+        /^[a-zA-Z\s]+$/.test(key) && // Only letters and spaces
+        !key.includes("#") && // No hashtags
+        !key.includes("@") && // No mentions
+        !key.includes("www") && // No URLs
+        !key.includes(".com"); // No domains
+
+      if (isValidCategory) {
+        categoryCounts[key] = (categoryCounts[key] || 0) + 1;
+      }
     }
   };
 
@@ -250,8 +300,7 @@ const fetchAvailableCategories = async (setLoading, setCategories) => {
 
     console.log("📊 Category counts:", categoryCounts);
 
-    // 🔥 ENHANCED: More flexible filtering
-    // Show categories that have any activity OR are predefined popular ones
+    // 🔥 ENHANCED: Much stricter filtering for better quality
     const popularPredefined = [
       "Music",
       "Gaming",
@@ -261,12 +310,41 @@ const fetchAvailableCategories = async (setLoading, setCategories) => {
       "Tech",
       "Food",
       "Travel",
+      "Fitness",
+      "Beauty",
+      "Education",
+      "Comedy",
+      "Art",
+      "Business",
     ];
+
+    // Only show categories that meet strict criteria
     const filteredCategories = Object.keys(categoryCounts).filter((cat) => {
-      return categoryCounts[cat] > 0 || popularPredefined.includes(cat);
+      // Always include popular predefined categories (even with 0 count)
+      if (popularPredefined.includes(cat)) {
+        return true;
+      }
+
+      // For dynamic categories, require minimum activity and quality
+      const count = categoryCounts[cat] || 0;
+      const isQualityCategory =
+        count >= 2 && // Minimum 2 occurrences
+        cat.length >= 4 &&
+        cat.length <= 12 &&
+        /^[A-Z][a-z]*$/.test(cat) && // Proper capitalization
+        !cat.includes(" ") && // Single word only
+        popularPredefined.some(
+          (pred) =>
+            cat.toLowerCase().includes(pred.toLowerCase()) ||
+            pred.toLowerCase().includes(cat.toLowerCase())
+        ); // Must be related to predefined categories
+
+      return isQualityCategory;
     });
 
-    // Sort by count, but keep popular predefined categories at top
+    console.log("🔍 Filtered categories:", filteredCategories);
+
+    // Sort by popularity and count
     const sortedCategories = filteredCategories.sort((a, b) => {
       const aIsPopular = popularPredefined.includes(a);
       const bIsPopular = popularPredefined.includes(b);
@@ -278,12 +356,14 @@ const fetchAvailableCategories = async (setLoading, setCategories) => {
     });
 
     if (sortedCategories.length > 0) {
-      const categoryNiches = sortedCategories.map((category) => ({
-        icon: CATEGORY_ICONS[category] || CATEGORY_ICONS.default,
-        title: category,
-        description: `${category} content and videos`,
-        count: categoryCounts[category] || 0, // Add count for debugging
-      }));
+      const categoryNiches = sortedCategories
+        .slice(0, 20) // Limit to 20 categories max
+        .map((category) => ({
+          icon: CATEGORY_ICONS[category] || CATEGORY_ICONS.default,
+          title: category,
+          description: `${category} content and videos`,
+          count: categoryCounts[category] || 0,
+        }));
 
       console.log(
         `✅ Showing ${categoryNiches.length} categories:`,
