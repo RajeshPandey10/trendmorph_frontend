@@ -4,13 +4,17 @@ import TrendingVideos from "../features/videos/TrendingVideos";
 import VoiceAIBanner from "../components/ui/VoiceAIBanner";
 import VoiceAIModal from "../components/ui/VoiceAIModal";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export default function HomePage() {
   const { selectedNiche, setNiche } = useNicheStore();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(false);
   const [showVoiceAIModal, setShowVoiceAIModal] = useState(false);
+  const [isNicheChanging, setIsNicheChanging] = useState(false);
+  const [displayedNiche, setDisplayedNiche] = useState(selectedNiche);
+  const videosRef = useRef(null);
+  const nicheChangeTimeoutRef = useRef(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -22,9 +26,49 @@ export default function HomePage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Handle niche changes with delay to prevent stale data
+  useEffect(() => {
+    if (selectedNiche) {
+      setIsNicheChanging(true);
+
+      // Clear any existing timeout
+      if (nicheChangeTimeoutRef.current) {
+        clearTimeout(nicheChangeTimeoutRef.current);
+      }
+
+      // Add delay to prevent showing stale data when rapidly switching niches
+      nicheChangeTimeoutRef.current = setTimeout(() => {
+        setDisplayedNiche(selectedNiche);
+        setIsNicheChanging(false);
+
+        // Auto-scroll to videos section on desktop after content loads
+        if (!isMobile && videosRef.current) {
+          setTimeout(() => {
+            videosRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+              inline: "nearest",
+            });
+          }, 300); // Small delay to ensure content is rendered
+        }
+      }, 500); // 500ms delay to prevent rapid switching issues
+    }
+
+    return () => {
+      if (nicheChangeTimeoutRef.current) {
+        clearTimeout(nicheChangeTimeoutRef.current);
+      }
+    };
+  }, [selectedNiche, isMobile]);
+
   const handleSelect = (niche) => {
     setNiche(niche);
-    if (isMobile) navigate("/videos");
+    if (isMobile) {
+      // Small delay before navigation on mobile to show selection feedback
+      setTimeout(() => {
+        navigate("/videos");
+      }, 200);
+    }
   };
 
   return (
@@ -61,16 +105,28 @@ export default function HomePage() {
 
         {/* Desktop: Show trending videos */}
         {!isMobile && selectedNiche && (
-          <div className="mb-8">
+          <div className="mb-8" ref={videosRef}>
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold mb-2 text-foreground">
-                Trending in {selectedNiche}
+                {isNicheChanging ? (
+                  <span className="opacity-50">Loading...</span>
+                ) : (
+                  <>Trending in {displayedNiche}</>
+                )}
               </h2>
               <p className="text-muted-foreground">
-                See what's popular and get inspired
+                {isNicheChanging
+                  ? "Fetching latest content..."
+                  : "See what's popular and get inspired"}
               </p>
             </div>
-            <TrendingVideos niche={selectedNiche} />
+            {isNicheChanging ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <TrendingVideos niche={displayedNiche} key={displayedNiche} />
+            )}
           </div>
         )}
 
@@ -87,7 +143,8 @@ export default function HomePage() {
                 Ready to Create?
               </h3>
               <p className="text-muted-foreground dark:text-muted-foreground mb-6 text-sm leading-relaxed">
-                Generate amazing content and thumbnails for {selectedNiche}
+                Generate amazing content and thumbnails for{" "}
+                {displayedNiche || selectedNiche}
               </p>
               <button
                 className="modern-button px-8 py-4 bg-gradient-to-r from-primary to-ring text-primary-foreground rounded-xl font-bold modern-shadow hover:modern-shadow-lg transform hover:scale-105 transition-all duration-300 w-full sm:w-auto float-element"

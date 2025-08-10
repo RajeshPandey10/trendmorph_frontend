@@ -1,4 +1,4 @@
-// VideoCard.jsx - Modern styled card for video preview with consistent height and dark mode support
+// VideoCard.jsx - Modern styled card for video preview with embedded player support
 import { useState } from "react";
 
 export default function VideoCard({
@@ -17,31 +17,88 @@ export default function VideoCard({
   const safeHashtags = Array.isArray(hashtags) ? hashtags : [];
   const [showFullTitle, setShowFullTitle] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showEmbeddedPlayer, setShowEmbeddedPlayer] = useState(false);
 
   // Truncate title if it's too long
   const truncatedTitle =
     title && title.length > 60 ? title.substring(0, 60) + "..." : title;
   const displayTitle = showFullTitle ? title : truncatedTitle;
 
+  // Extract YouTube video ID for embedded player
+  const getYouTubeVideoId = (url) => {
+    if (!url || platform !== "YouTube") return null;
+
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  const youtubeVideoId = getYouTubeVideoId(url);
+
+  // Handle video preview toggle
+  const handlePreview = (e) => {
+    e.preventDefault();
+    if (platform === "YouTube" && youtubeVideoId) {
+      setShowEmbeddedPlayer(!showEmbeddedPlayer);
+    } else {
+      // Open external link for non-YouTube content
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   return (
     <div className="glass-effect rounded-xl modern-shadow overflow-hidden flex flex-col hover:modern-shadow-lg transition-all duration-300 modern-button h-[400px] w-full">
-      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-        {!imageError && thumbnail ? (
-          <img
-            src={thumbnail}
-            alt={title}
-            className="w-full h-40 object-cover transition-transform duration-300 hover:scale-105"
-            onError={() => setImageError(true)}
-            loading="lazy"
+      {/* Video thumbnail or embedded player */}
+      {showEmbeddedPlayer && youtubeVideoId ? (
+        <div className="w-full h-40 relative">
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&rel=0`}
+            title={title}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
           />
-        ) : (
-          <div className="w-full h-40 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-            <span className="text-gray-500 dark:text-gray-400 text-sm">
-              📱 No Image
-            </span>
-          </div>
-        )}
-      </a>
+          <button
+            onClick={() => setShowEmbeddedPlayer(false)}
+            className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
+            title="Close player"
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <div
+          className="cursor-pointer block relative group"
+          onClick={handlePreview}
+        >
+          {!imageError && thumbnail ? (
+            <div className="relative">
+              <img
+                src={thumbnail}
+                alt={title}
+                className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+                onError={() => setImageError(true)}
+                loading="lazy"
+              />
+              {/* Play overlay for YouTube videos */}
+              {platform === "YouTube" && youtubeVideoId && (
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-red-600 rounded-full p-3 transform scale-110 group-hover:scale-125 transition-transform">
+                    <span className="text-white text-xl">▶️</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="w-full h-40 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+              <span className="text-gray-500 dark:text-gray-400 text-sm">
+                📱 No Image
+              </span>
+            </div>
+          )}
+        </div>
+      )}
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div className="flex-1">
           {/* Platform and category badges */}
@@ -111,16 +168,38 @@ export default function VideoCard({
           )}
         </div>
 
-        {/* Watch button fixed at bottom */}
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 dark:text-primary dark:hover:text-primary/80 transition-colors modern-button px-3 py-2 rounded-lg glass-effect modern-shadow hover:modern-shadow-lg w-full"
-        >
-          <span>▶️</span>
-          Watch
-        </a>
+        {/* Watch/Preview button fixed at bottom */}
+        <div className="flex gap-2">
+          <button
+            onClick={handlePreview}
+            className="flex-1 inline-flex items-center justify-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 dark:text-primary dark:hover:text-primary/80 transition-colors modern-button px-3 py-2 rounded-lg glass-effect modern-shadow hover:modern-shadow-lg"
+          >
+            {platform === "YouTube" && youtubeVideoId ? (
+              <>
+                <span>{showEmbeddedPlayer ? "🎬" : "▶️"}</span>
+                {showEmbeddedPlayer ? "Playing" : "Preview"}
+              </>
+            ) : (
+              <>
+                <span>🔗</span>
+                View
+              </>
+            )}
+          </button>
+
+          {/* External link button for YouTube videos */}
+          {platform === "YouTube" && youtubeVideoId && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1 text-sm font-semibold text-secondary-foreground hover:text-primary transition-colors modern-button px-3 py-2 rounded-lg glass-effect modern-shadow hover:modern-shadow-lg"
+              title="Open in YouTube"
+            >
+              <span>📺</span>
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

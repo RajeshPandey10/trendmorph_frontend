@@ -1,5 +1,5 @@
 // TrendingVideos.jsx - shows top trending videos for a selected niche with multi-platform support
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import VideoCard from "../../components/ui/VideoCard";
 import { ComponentLoader } from "../../components/ui/Loading";
 import SummaryApi from "../../api/SummaryApi";
@@ -80,32 +80,85 @@ export default function TrendingVideos({ niche, platform = "all" }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentNiche, setCurrentNiche] = useState(niche);
+  const [selectedPlatform, setSelectedPlatform] = useState(platform);
+  const videosRef = useRef(null);
+  const platformSelectorRef = useRef(null);
 
   useEffect(() => {
-    fetchTrendingVideos();
-  }, [niche, platform]);
+    // Add a small delay to prevent rapid API calls when switching niches quickly
+    const timeoutId = setTimeout(() => {
+      if (niche !== currentNiche) {
+        setCurrentNiche(niche);
+        fetchTrendingVideos();
+      }
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [niche, selectedPlatform]);
+
+  // Initial load
+  useEffect(() => {
+    if (currentNiche) {
+      fetchTrendingVideos();
+    }
+  }, [currentNiche, selectedPlatform]);
+
+  // Handle platform selection with auto-scroll (improved for mobile)
+  const handlePlatformChange = (newPlatform) => {
+    setSelectedPlatform(newPlatform);
+
+    // Auto-scroll to videos section after platform change with better mobile support
+    setTimeout(() => {
+      if (videosRef.current) {
+        const isMobile = window.innerWidth < 768;
+        videosRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: isMobile ? "center" : "start", // Better mobile positioning
+          inline: "nearest",
+        });
+      }
+    }, 300); // Increased delay for better UX
+  };
+
+  // Remove duplicates based on URL and title
+  const removeDuplicates = (videos) => {
+    const seen = new Set();
+    return videos.filter((video) => {
+      // Create a unique identifier based on URL and title
+      const identifier = `${video.url}-${video.title?.toLowerCase().trim()}`;
+      if (seen.has(identifier)) {
+        console.log(`🗑️ Removing duplicate: ${video.title}`);
+        return false;
+      }
+      seen.add(identifier);
+      return true;
+    });
+  };
 
   const fetchTrendingVideos = async () => {
+    if (!currentNiche) return;
+
     setLoading(true);
     setError(null);
     setVideos([]); // Clear previous videos immediately for better UX
 
     try {
-      let allVideos = [];
-      const categoryQueries = CATEGORY_MAPPING[niche] ||
-        CATEGORY_MAPPING.default || {
-          youtube: niche?.toLowerCase() || "trending",
-          reddit: niche?.toLowerCase() || "popular",
-          pinterest: niche?.toLowerCase() || "trending",
-        };
-
       console.log(
-        `🎯 Fetching videos for niche: ${niche}, platform: ${platform}`
+        `🎯 Fetching videos for niche: ${currentNiche}, platform: ${selectedPlatform}`
       );
-      console.log(`📋 Category queries:`, categoryQueries);
 
-      if (platform === "all") {
-        // Fetch from all platforms
+      let allVideos = [];
+      const categoryQueries = CATEGORY_MAPPING[currentNiche] || {
+        youtube: currentNiche?.toLowerCase() || "trending",
+        reddit: currentNiche?.toLowerCase() || "popular",
+        pinterest: currentNiche?.toLowerCase() || "trending",
+      };
+
+      console.log(`📋 Category queries for ${currentNiche}:`, categoryQueries);
+
+      if (selectedPlatform === "all") {
+        // Fetch from all platforms with proper error handling
         const fetchPromises = [
           fetchFromPlatform("youtube", categoryQueries.youtube),
           fetchFromPlatform("reddit", categoryQueries.reddit),
@@ -115,29 +168,43 @@ export default function TrendingVideos({ niche, platform = "all" }) {
         const results = await Promise.allSettled(fetchPromises);
 
         results.forEach((result, index) => {
-          if (result.status === "fulfilled") {
+          const platformName = ["youtube", "reddit", "pinterest"][index];
+          if (result.status === "fulfilled" && result.value) {
+            console.log(
+              `✅ ${platformName}: Found ${result.value.length} videos`
+            );
             allVideos = [...allVideos, ...result.value];
           } else {
             console.warn(
-              `Failed to fetch from ${
-                ["youtube", "reddit", "pinterest"][index]
-              }:`,
+              `❌ Failed to fetch from ${platformName}:`,
               result.reason
             );
           }
         });
       } else {
         // Fetch from selected platform only
-        const query = categoryQueries[platform] || niche?.toLowerCase();
-        allVideos = await fetchFromPlatform(platform, query);
+        const query =
+          categoryQueries[selectedPlatform] || currentNiche?.toLowerCase();
+        console.log(
+          `🔍 Fetching from ${selectedPlatform} with query: ${query}`
+        );
+        allVideos = await fetchFromPlatform(selectedPlatform, query);
       }
 
-      // Shuffle and limit videos
-      let filteredVideos = allVideos;
+      console.log(`📊 Total videos fetched: ${allVideos.length}`);
+
+      // Remove duplicates first
+      const uniqueVideos = removeDuplicates(allVideos);
+      console.log(
+        `🗂️ After removing duplicates: ${uniqueVideos.length} videos`
+      );
+
+      // Enhanced filtering for better category relevance
+      let filteredVideos = uniqueVideos;
 
       // Filter videos by selected niche/category for better relevance
-      if (niche && niche.toLowerCase() !== "trending") {
-        filteredVideos = allVideos.filter((video) => {
+      if (currentNiche && currentNiche.toLowerCase() !== "trending") {
+        filteredVideos = uniqueVideos.filter((video) => {
           const searchTerms = [
             video.title?.toLowerCase() || "",
             video.category?.toLowerCase() || "",
@@ -146,23 +213,38 @@ export default function TrendingVideos({ niche, platform = "all" }) {
             (video.hashtags || []).join(" ").toLowerCase(),
           ];
 
-          const nicheKeywords = niche.toLowerCase();
-          return searchTerms.some(
-            (term) =>
-              term.includes(nicheKeywords) ||
-              nicheKeywords.includes(term.split(" ")[0])
-          );
+          const nicheKeywords = currentNiche.toLowerCase();
+          const nicheWords = nicheKeywords.split(" ");
+
+          // Check for exact matches and partial matches
+          return searchTerms.some((term) => {
+            return nicheWords.some(
+              (nicheWord) =>
+                term.includes(nicheWord) ||
+                nicheWord.includes(term.split(" ")[0])
+            );
+          });
         });
 
-        // If filtered results are too few, mix with original results
+        console.log(
+          `🔍 Filtered videos for ${currentNiche}: ${filteredVideos.length} out of ${uniqueVideos.length}`
+        );
+
+        // If filtered results are too few, add some original results
         if (filteredVideos.length < 4) {
-          const remaining = allVideos.filter(
+          const remaining = uniqueVideos.filter(
             (v) => !filteredVideos.includes(v)
           );
           filteredVideos = [
             ...filteredVideos,
-            ...remaining.slice(0, 8 - filteredVideos.length),
+            ...remaining.slice(0, Math.max(8 - filteredVideos.length, 4)),
           ];
+          console.log(
+            `📈 Added ${Math.max(
+              8 - filteredVideos.length,
+              4
+            )} additional videos`
+          );
         }
       }
 
@@ -181,6 +263,7 @@ export default function TrendingVideos({ niche, platform = "all" }) {
 
   const fetchFromPlatform = async (platformId, query) => {
     try {
+      console.log(`🌐 Making API call to ${platformId} with query: "${query}"`);
       let response;
 
       switch (platformId) {
@@ -197,10 +280,40 @@ export default function TrendingVideos({ niche, platform = "all" }) {
           return [];
       }
 
+      // 🔥 DETAILED API RESPONSE LOGGING
+      console.log(`📡 Full API Response from ${platformId}:`, {
+        status: response?.status,
+        statusText: response?.statusText,
+        headers: response?.headers,
+        data: response?.data,
+        url: response?.config?.url,
+        method: response?.config?.method,
+        params: response?.config?.params,
+      });
+
+      console.log(`📊 Response data structure from ${platformId}:`, {
+        dataType: typeof response?.data,
+        isArray: Array.isArray(response?.data),
+        dataKeys: response?.data ? Object.keys(response.data) : "No data",
+        dataLength: response?.data?.length || "N/A",
+        firstItem:
+          response?.data?.[0] ||
+          response?.data?.results?.[0] ||
+          response?.data?.posts?.[0] ||
+          response?.data?.videos?.[0] ||
+          "No items",
+      });
+
       const transformedVideos = transformVideos(
         response?.data || [],
         platformId
       );
+
+      console.log(`✨ Transformed videos from ${platformId}:`, {
+        count: transformedVideos.length,
+        sampleVideo: transformedVideos[0] || "No videos",
+        allVideos: transformedVideos,
+      });
 
       return transformedVideos;
     } catch (error) {
@@ -223,9 +336,10 @@ export default function TrendingVideos({ niche, platform = "all" }) {
     } else if (videosData && Array.isArray(videosData.data)) {
       videosList = videosData.data;
     }
+
     return videosList.map((item, index) => {
       let transformedItem = {
-        id: `${platformId}-${item.id || index}`,
+        id: `${platformId}-${item.id || item.url || index}`,
         title: item.title || item.description || "Untitled",
         url: item.url || item.video_url || "#",
         thumbnail: item.thumbnail || item.image_url || "/placeholder-image.jpg",
@@ -297,6 +411,32 @@ export default function TrendingVideos({ niche, platform = "all" }) {
           <p className="text-muted-foreground text-sm mb-4">
             Discover what's trending and get inspired for your content
           </p>
+
+          {/* Platform Selector */}
+          <div
+            className="flex flex-wrap justify-center gap-2 mt-4"
+            ref={platformSelectorRef}
+          >
+            {[
+              { id: "all", label: "All Platforms", icon: "🌐" },
+              { id: "youtube", label: "YouTube", icon: "📺" },
+              { id: "reddit", label: "Reddit", icon: "🤖" },
+              { id: "pinterest", label: "Pinterest", icon: "📌" },
+            ].map((platformOption) => (
+              <button
+                key={platformOption.id}
+                onClick={() => handlePlatformChange(platformOption.id)}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  selectedPlatform === platformOption.id
+                    ? "bg-primary text-primary-foreground modern-shadow-lg"
+                    : "glass-effect hover:glass-effect-hover text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="mr-1">{platformOption.icon}</span>
+                {platformOption.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -304,7 +444,7 @@ export default function TrendingVideos({ niche, platform = "all" }) {
         <div className="mb-6">
           <ComponentLoader
             message={`Loading ${niche} videos from ${
-              platform === "all" ? "all platforms" : platform
+              selectedPlatform === "all" ? "all platforms" : selectedPlatform
             }...`}
           />
         </div>
@@ -332,7 +472,10 @@ export default function TrendingVideos({ niche, platform = "all" }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+        ref={videosRef}
+      >
         {Array.isArray(videos) && videos.length > 0
           ? videos.map((video, index) => (
               <div
@@ -352,8 +495,10 @@ export default function TrendingVideos({ niche, platform = "all" }) {
                   </h4>
                   <p className="text-muted-foreground text-sm">
                     No trending videos found for {niche} on{" "}
-                    {platform === "all" ? "any platform" : platform}. Try
-                    selecting a different platform or niche.
+                    {selectedPlatform === "all"
+                      ? "any platform"
+                      : selectedPlatform}
+                    . Try selecting a different platform or niche.
                   </p>
                 </div>
               </div>
